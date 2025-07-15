@@ -1,0 +1,794 @@
+{
+  "info": {
+    "name": "Trashlance API",
+    "description": "Complete API collection for Trashlance waste management system",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"Password123\",\n  \"phone\": \"+1234567890\",\n  \"role\": \"customer\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('auth_token', response.data.token);",
+                  "    pm.test('Registration successful', function () {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "        pm.expect(response.data.token).to.exist;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"Password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('auth_token', response.data.token);",
+                  "    pm.test('Login successful', function () {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "        pm.expect(response.data.token).to.exist;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get current user successful', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.success).to.be.true;",
+                  "    pm.expect(response.data.user).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/verify-email/{{verification_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "verify-email", "{{verification_token}}"]
+            }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/forgot-password",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "forgot-password"]
+            }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"NewPassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/reset-password/{{reset_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "reset-password", "{{reset_token}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Services",
+      "item": [
+        {
+          "name": "Get All Services",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/services?page=1&limit=10&category=residential_pickup",
+              "host": ["{{base_url}}"],
+              "path": ["services"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "category",
+                  "value": "residential_pickup"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get services successful', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.success).to.be.true;",
+                  "    pm.expect(response.data.docs).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Service",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Residential Waste Pickup\",\n  \"description\": \"Weekly residential waste collection service\",\n  \"category\": \"residential_pickup\",\n  \"pricing\": {\n    \"type\": \"fixed\",\n    \"basePrice\": 25.00,\n    \"unit\": \"service\"\n  },\n  \"duration\": {\n    \"estimated\": 30\n  },\n  \"availability\": {\n    \"days\": [\"monday\", \"tuesday\", \"wednesday\", \"thursday\", \"friday\"],\n    \"timeSlots\": [\n      {\n        \"start\": \"08:00\",\n        \"end\": \"17:00\",\n        \"maxBookings\": 10\n      }\n    ]\n  },\n  \"serviceArea\": {\n    \"type\": \"radius\",\n    \"radius\": 25,\n    \"coordinates\": {\n      \"latitude\": 40.7128,\n      \"longitude\": -74.0060\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/services",
+              "host": ["{{base_url}}"],
+              "path": ["services"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('service_id', response.data.service._id);",
+                  "    pm.test('Service created successfully', function () {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "        pm.expect(response.data.service._id).to.exist;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Service by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/services/{{service_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["services", "{{service_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Service",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Premium Residential Waste Pickup\",\n  \"pricing\": {\n    \"basePrice\": 30.00\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/services/{{service_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["services", "{{service_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Service",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/services/{{service_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["services", "{{service_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        {
+          "name": "Create Booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceProvider\": \"{{provider_id}}\",\n  \"service\": \"{{service_id}}\",\n  \"scheduledDate\": \"2024-02-15T00:00:00.000Z\",\n  \"timeSlot\": {\n    \"start\": \"10:00\",\n    \"end\": \"11:00\"\n  },\n  \"location\": {\n    \"address\": {\n      \"street\": \"123 Main St\",\n      \"city\": \"New York\",\n      \"state\": \"NY\",\n      \"zipCode\": \"10001\",\n      \"country\": \"USA\"\n    },\n    \"coordinates\": {\n      \"latitude\": 40.7128,\n      \"longitude\": -74.0060\n    },\n    \"accessInstructions\": \"Ring doorbell\",\n    \"contactPerson\": {\n      \"name\": \"John Doe\",\n      \"phone\": \"+1234567890\"\n    }\n  },\n  \"serviceDetails\": {\n    \"wasteType\": [\"household\", \"recyclable\"],\n    \"estimatedWeight\": 50,\n    \"additionalNotes\": \"Please be careful with glass items\"\n  },\n  \"pricing\": {\n    \"baseAmount\": 25.00,\n    \"tax\": {\n      \"amount\": 2.50,\n      \"rate\": 0.10\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/bookings",
+              "host": ["{{base_url}}"],
+              "path": ["bookings"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('booking_id', response.data.booking._id);",
+                  "    pm.test('Booking created successfully', function () {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "        pm.expect(response.data.booking._id).to.exist;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get User Bookings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/bookings?page=1&limit=10&status=pending",
+              "host": ["{{base_url}}"],
+              "path": ["bookings"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Booking by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/bookings/{{booking_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["bookings", "{{booking_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Booking Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmed\",\n  \"reason\": \"Service provider confirmed availability\",\n  \"notes\": \"Will arrive at scheduled time\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/bookings/{{booking_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["bookings", "{{booking_id}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "Update Location",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": 40.7580,\n  \"longitude\": -73.9855,\n  \"estimatedArrival\": \"2024-02-15T10:30:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/bookings/{{booking_id}}/location",
+              "host": ["{{base_url}}"],
+              "path": ["bookings", "{{booking_id}}", "location"]
+            }
+          }
+        },
+        {
+          "name": "Add Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"I'm running 10 minutes late due to traffic\",\n  \"type\": \"message\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/bookings/{{booking_id}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["bookings", "{{booking_id}}", "messages"]
+            }
+          }
+        },
+        {
+          "name": "Cancel Booking",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Customer requested cancellation\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/bookings/{{booking_id}}/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["bookings", "{{booking_id}}", "cancel"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "item": [
+        {
+          "name": "Create Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"booking\": \"{{booking_id}}\",\n  \"reviewee\": \"{{provider_id}}\",\n  \"service\": \"{{service_id}}\",\n  \"rating\": {\n    \"overall\": 5,\n    \"punctuality\": 5,\n    \"quality\": 4,\n    \"communication\": 5,\n    \"value\": 4\n  },\n  \"review\": {\n    \"title\": \"Excellent Service!\",\n    \"content\": \"The service provider was punctual, professional, and did an excellent job. Highly recommended!\",\n    \"pros\": [\"Punctual\", \"Professional\", \"Thorough\"],\n    \"cons\": [\"None\"]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reviews",
+              "host": ["{{base_url}}"],
+              "path": ["reviews"]
+            }
+          }
+        },
+        {
+          "name": "Get Reviews",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reviews?reviewee={{provider_id}}&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["reviews"],
+              "query": [
+                {
+                  "key": "reviewee",
+                  "value": "{{provider_id}}"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Create Payment Intent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{booking_id}}\",\n  \"amount\": 2750,\n  \"currency\": \"usd\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/create-intent",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "create-intent"]
+            }
+          }
+        },
+        {
+          "name": "Confirm Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentIntentId\": \"{{payment_intent_id}}\",\n  \"bookingId\": \"{{booking_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/confirm",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "confirm"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/profile",
+              "host": ["{{base_url}}"],
+              "path": ["users", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Smith\",\n  \"phone\": \"+1234567890\",\n  \"address\": {\n    \"street\": \"456 Oak Ave\",\n    \"city\": \"New York\",\n    \"state\": \"NY\",\n    \"zipCode\": \"10002\",\n    \"country\": \"USA\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/profile",
+              "host": ["{{base_url}}"],
+              "path": ["users", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Get Service Providers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/providers?latitude=40.7128&longitude=-74.0060&radius=25",
+              "host": ["{{base_url}}"],
+              "path": ["users", "providers"],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "40.7128"
+                },
+                {
+                  "key": "longitude",
+                  "value": "-74.0060"
+                },
+                {
+                  "key": "radius",
+                  "value": "25"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications?page=1&limit=20&unread=true",
+              "host": ["{{base_url}}"],
+              "path": ["notifications"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "unread",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/{{notification_id}}/read",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "{{notification_id}}", "read"]
+            }
+          }
+        },
+        {
+          "name": "Mark All as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/mark-all-read",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "mark-all-read"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard"]
+            }
+          }
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/users?page=1&limit=20&role=customer",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "role",
+                  "value": "customer"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Verify Service Provider",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"verified\": true,\n  \"notes\": \"All documents verified successfully\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/providers/{{provider_id}}/verify",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "providers", "{{provider_id}}", "verify"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('API is healthy', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.status).to.equal('OK');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
