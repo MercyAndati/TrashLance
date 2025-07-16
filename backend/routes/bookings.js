@@ -16,7 +16,7 @@ const { body } = require('express-validator');
 
 // All routes require authentication
 router.use(authenticateToken);
-router.use(requireEmailVerification);
+//router.use(requireEmailVerification);
 
 // Get user bookings
 router.get('/', validatePagination, getUserBookings);

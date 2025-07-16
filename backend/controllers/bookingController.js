@@ -35,6 +35,30 @@ const createBooking = async (req, res) => {
         message: 'Service provider not found or not verified'
       });
     }
+    // ✅ Enforce subscription plan limits
+    const activePlan = provider.serviceProvider?.subscription?.plan || 'Free';
+    const activeEnd = new Date(provider.serviceProvider?.subscription?.endDate || 0);
+    const now = new Date();
+
+    if (now > activeEnd) {
+      return res.status(403).json({ success: false, message: 'Subscription expired. Please renew to accept bookings.' });
+    }
+
+    const monthlyBookingCount = await Booking.countDocuments({
+      serviceProvider: provider._id,
+      createdAt: {
+        $gte: new Date(now.getFullYear(), now.getMonth(), 1),
+        $lt: new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      }
+    });
+
+    const planLimits = { Free: 10, Standard: 50, Premium: Infinity };
+    if (monthlyBookingCount >= planLimits[activePlan]) {
+      return res.status(403).json({
+        success: false,
+        message: `Booking limit reached for your current plan (${activePlan}). Upgrade to accept more bookings.`
+      });
+    }
 
     // Check if provider offers this service
     if (!provider.serviceProvider.servicesOffered.includes(service)) {
@@ -106,8 +130,8 @@ const createBooking = async (req, res) => {
 
     // Populate booking for response
     await booking.populate([
-      { path: 'customer', select: 'firstName lastName email phone' },
-      { path: 'serviceProvider', select: 'firstName lastName email phone serviceProvider.companyName' },
+      { path: 'customer', select: 'username email phone' },
+      { path: 'serviceProvider', select: 'username email phone serviceProvider.companyName' },
       { path: 'service', select: 'name category pricing' }
     ]);
 
@@ -116,7 +140,7 @@ const createBooking = async (req, res) => {
       recipient: serviceProvider,
       type: 'booking_confirmed',
       title: 'New Booking Request',
-      message: `You have a new booking request from ${req.user.firstName} ${req.user.lastName}`,
+      message: `You have a new booking request from ${req.user.username}`,
       category: 'booking',
       data: {
         bookingId: booking._id,
@@ -130,8 +154,8 @@ const createBooking = async (req, res) => {
       subject: 'New Booking Request - Trashlance',
       template: 'newBooking',
       data: {
-        providerName: provider.firstName,
-        customerName: `${req.user.firstName} ${req.user.lastName}`,
+        providerName: provider.usernam,
+        customerName: `${req.user.username}`,
         serviceName: serviceDoc.name,
         scheduledDate: booking.scheduledDate,
         bookingUrl: `${process.env.CLIENT_URL}/bookings/${booking._id}`
@@ -183,8 +207,8 @@ const getUserBookings = async (req, res) => {
       limit: parseInt(limit),
       sort: { [sortBy]: sortOrder === 'desc' ? -1 : 1 },
       populate: [
-        { path: 'customer', select: 'firstName lastName email phone avatar' },
-        { path: 'serviceProvider', select: 'firstName lastName email phone serviceProvider.companyName avatar' },
+        { path: 'customer', select: 'username email phone avatar' },
+        { path: 'serviceProvider', select: 'username email phone serviceProvider.companyName avatar' },
         { path: 'service', select: 'name category pricing images' }
       ]
     };
@@ -211,11 +235,11 @@ const getBookingById = async (req, res) => {
     
     const booking = await Booking.findById(id)
       .populate([
-        { path: 'customer', select: 'firstName lastName email phone avatar address' },
-        { path: 'serviceProvider', select: 'firstName lastName email phone serviceProvider avatar address' },
+        { path: 'customer', select: 'username email phone avatar address' },
+        { path: 'serviceProvider', select: 'username email phone serviceProvider avatar address' },
         { path: 'service', select: 'name description category pricing images duration' },
-        { path: 'statusHistory.updatedBy', select: 'firstName lastName' },
-        { path: 'communication.sender', select: 'firstName lastName avatar' }
+        { path: 'statusHistory.updatedBy', select: 'username' },
+        { path: 'communication.sender', select: 'username avatar' }
       ]);
 
     if (!booking) {
@@ -454,7 +478,7 @@ const addMessage = async (req, res) => {
     await booking.save();
 
     // Get the added message with populated sender
-    await booking.populate('communication.sender', 'firstName lastName avatar');
+    await booking.populate('communication.sender', 'username avatar');
     const addedMessage = booking.communication[booking.communication.length - 1];
 
     // Send notification to other party

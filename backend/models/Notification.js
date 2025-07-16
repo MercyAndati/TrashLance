@@ -21,7 +21,7 @@ const notificationSchema = new mongoose.Schema({
       'service_completed',
       'payment_received',
       'payment_failed',
-      'review_received',
+      'comment_received',
       'provider_arriving',
       'provider_delayed',
       'system_maintenance',
@@ -50,10 +50,6 @@ const notificationSchema = new mongoose.Schema({
     serviceId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Service'
-    },
-    reviewId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Review'
     },
     actionUrl: String,
     metadata: mongoose.Schema.Types.Mixed

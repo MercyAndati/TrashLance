@@ -4,7 +4,7 @@ const path = require('path');
 
 // Create transporter
 const createTransporter = () => {
-  return nodemailer.createTransporter({
+  return nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
     secure: false, // true for 465, false for other ports
@@ -22,7 +22,7 @@ const templates = {
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #2c5aa0;">Welcome to Trashlance!</h2>
-        <p>Hi {{firstName}},</p>
+        <p>Hi {{username}},</p>
         <p>Thank you for registering with Trashlance. Please verify your email address by clicking the button below:</p>
         <div style="text-align: center; margin: 30px 0;">
           <a href="{{verificationUrl}}" style="background-color: #2c5aa0; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Verify Email</a>
@@ -44,7 +44,7 @@ const templates = {
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #2c5aa0;">Password Reset Request</h2>
-        <p>Hi {{firstName}},</p>
+        <p>Hi {{username}},</p>
         <p>You requested to reset your password for your Trashlance account. Click the button below to reset it:</p>
         <div style="text-align: center; margin: 30px 0;">
           <a href="{{resetUrl}}" style="background-color: #dc3545; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
@@ -98,7 +98,7 @@ const templates = {
           <p><strong>Service:</strong> {{serviceName}}</p>
           <p><strong>Date & Time:</strong> {{scheduledDateTime}}</p>
           <p><strong>Provider:</strong> {{providerName}}</p>
-          <p><strong>Total Amount:</strong> ${{totalAmount}}</p>
+          <p><strong>Total Amount:</strong> \$\{{totalAmount}}</p>
         </div>
         <div style="text-align: center; margin: 30px 0;">
           <a href="{{bookingUrl}}" style="background-color: #2c5aa0; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">View Booking</a>

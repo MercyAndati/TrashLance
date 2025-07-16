@@ -108,24 +108,12 @@ npm start
   TWILIO_PHONE_NUMBER=your_twilio_phone
   ```
 
-### 5. Stripe (Free - Test mode)
-- Go to [Stripe](https://stripe.com/)
-- Create account
-- Get test API keys from dashboard
-- Set in `.env`:
-  ```
-  STRIPE_SECRET_KEY=sk_test_your_secret_key
-  STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
-  ```
-
-### 6. Google Maps API (Free - $200 monthly credit)
-- Go to [Google Cloud Console](https://console.cloud.google.com/)
-- Create project and enable Maps APIs
-- Create API key with restrictions
-- Set in `.env`:
-  ```
-  GOOGLE_MAPS_API_KEY=your_api_key
-  ```
+### 6. Geolocation & Maps (Completely Free - No API Key Needed)
+TrashLance uses open-source, cost-free tools for location and routing:
+- 🌍 OpenStreetMap (map tiles & address formatting)
+- 📍 Nominatim (geocoding and reverse geocoding)
+- 🛣️ OSRM (route calculation between points)
+- 🧠 Haversine formula for calculating distances
 
 ## API Testing with Postman
 
@@ -318,3 +306,6 @@ For issues and questions:
 ## License
 
 MIT License - see LICENSE file for details
+
+## payment
+virtual simulation for mvp
