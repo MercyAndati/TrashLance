@@ -18,8 +18,8 @@ const adminRoutes = require("./routes/admin")
 const notificationRoutes = require("./routes/notifications")
 const subscriptionRoutes = require("./routes/subscriptions")
 const postRoutes = require("./routes/posts")
-// const pickupZoneRoutes = require("./routes/pickupZones") // TEMPORARILY DISABLED
-// const chatRoutes = require("./routes/chats") // TEMPORARILY DISABLED
+const pickupZoneRoutes = require("./routes/pickupZones") // TEMPORARILY DISABLED
+const chatRoutes = require("./routes/chats") // TEMPORARILY DISABLED
 
 // ✅ Verify email configuration at startup
 const { verifyEmailConfig } = require("./utils/email")
@@ -35,7 +35,7 @@ const server = createServer(app)
 // Socket.IO setup
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
     methods: ["GET", "POST"],
   },
 })
@@ -56,12 +56,7 @@ const limiter = rateLimit({
 app.use("/api/", limiter)
 
 // CORS configuration
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
-    credentials: true,
-  }),
-)
+app.use(cors());
 
 // Body parsing middleware
 app.use(express.json({ limit: "10mb" }))
@@ -89,8 +84,8 @@ app.use("/api/subscriptions", subscriptionRoutes)
 app.use("/api/admin", adminRoutes)
 app.use("/api/notifications", notificationRoutes)
 app.use("/api/posts", postRoutes)
-// app.use("/api/pickup-zones", pickupZoneRoutes) // TEMPORARILY DISABLED
-// app.use("/api/chats", chatRoutes) // TEMPORARILY DISABLED
+app.use("/api/pickup-zones", pickupZoneRoutes) // TEMPORARILY DISABLED
+app.use("/api/chats", chatRoutes) // TEMPORARILY DISABLED
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
