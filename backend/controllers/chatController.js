@@ -1,6 +1,7 @@
 const Chat = require("../models/Chat")
 const User = require("../models/User")
 const Booking = require("../models/Booking")
+const Notification = require("../models/Notification")
 
 // Get user's chats
 const getUserChats = async (req, res) => {
@@ -149,14 +150,43 @@ const sendMessage = async (req, res) => {
     await chat.populate("messages.sender", "username avatar")
     const populatedMessage = chat.messages[chat.messages.length - 1]
 
-    // Emit real-time message to other participants
+    // Emit real-time message to chat room (excluding sender)
     const io = req.app.get("io")
-    chat.participants.forEach((participant) => {
+    io.to(`chat-${chatId}`).emit("new-message", {
+      chatId: chat._id,
+      message: populatedMessage,
+      senderId: req.user._id, // Add sender ID so frontend can filter
+    })
+
+    // Send notifications to other participants
+    chat.participants.forEach(async (participant) => {
       if (participant.user.toString() !== req.user._id.toString()) {
-        io.to(participant.user.toString()).emit("new-message", {
-          chatId: chat._id,
-          message: populatedMessage,
+        // Send in-app notification
+        await Notification.createAndSend({
+          recipient: participant.user,
+          type: "chat_message",
+          title: "New Message",
+          message: `${req.user.username}: ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`,
+          category: "chat",
+          data: {
+            chatId: chat._id,
+            messageId: populatedMessage._id,
+            actionUrl: `/chat?chatId=${chat._id}`
+          }
         })
+
+        // Send socket notification for real-time updates
+        console.log("Sending notification to user:", participant.user.toString())
+        io.to(participant.user.toString()).emit("new-notification", {
+          type: "chat_message",
+          title: "New Message",
+          message: `${req.user.username}: ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`,
+          data: {
+            chatId: chat._id,
+            messageId: populatedMessage._id
+          }
+        })
+        console.log("Notification sent successfully")
       }
     })
 
@@ -174,17 +204,25 @@ const sendMessage = async (req, res) => {
   }
 }
 
-// Start chat with service provider
-const startChatWithProvider = async (req, res) => {
+// Start chat with user (any user, not just service providers)
+const startChatWithUser = async (req, res) => {
   try {
-    const { providerId, bookingId } = req.body
+    const { providerId, userId, bookingId } = req.body
+    const targetUserId = providerId || userId
 
-    // Verify provider exists and is a service provider
-    const provider = await User.findById(providerId)
-    if (!provider || provider.role !== "service_provider") {
+    if (!targetUserId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      })
+    }
+
+    // Verify target user exists
+    const targetUser = await User.findById(targetUserId)
+    if (!targetUser) {
       return res.status(404).json({
         success: false,
-        message: "Service provider not found",
+        message: "User not found",
       })
     }
 
@@ -212,18 +250,54 @@ const startChatWithProvider = async (req, res) => {
     }
 
     // Find or create chat
-    const chat = await Chat.findOrCreateDirectChat(req.user._id, providerId, bookingId)
+    const chat = await Chat.findOrCreateDirectChat(req.user._id, targetUserId, bookingId)
 
     await chat.populate([
       {
         path: "participants.user",
-        select: "username avatar",
+        select: "username avatar role",
       },
       {
         path: "relatedBooking",
         select: "bookingNumber status",
       },
     ])
+
+    // Send notifications to both users
+    const io = req.app.get("io")
+    
+    // Notify the target user about the new chat
+    io.to(targetUserId).emit("new-chat", {
+      chatId: chat._id,
+      initiator: req.user._id,
+      message: `${req.user.username} started a conversation with you`
+    })
+
+    // Send email notification to target user
+    await Notification.createAndSend({
+      recipient: targetUserId,
+      type: "new_chat",
+      title: "New Conversation",
+      message: `${req.user.username} started a conversation with you`,
+      category: "chat",
+      data: {
+        chatId: chat._id,
+        actionUrl: `/chat?chatId=${chat._id}`
+      }
+    })
+
+    // Send email notification to initiator
+    await Notification.createAndSend({
+      recipient: req.user._id,
+      type: "new_chat",
+      title: "Conversation Started",
+      message: `You started a conversation with ${targetUser.username}`,
+      category: "chat",
+      data: {
+        chatId: chat._id,
+        actionUrl: `/chat?chatId=${chat._id}`
+      }
+    })
 
     res.json({
       success: true,
@@ -238,6 +312,9 @@ const startChatWithProvider = async (req, res) => {
     })
   }
 }
+
+// Keep the old function for backward compatibility
+const startChatWithProvider = startChatWithUser
 
 // Mark messages as read
 const markAsRead = async (req, res) => {
@@ -279,10 +356,75 @@ const markAsRead = async (req, res) => {
   }
 }
 
+// Delete message
+const deleteMessage = async (req, res) => {
+  try {
+    const { chatId, messageId } = req.params
+
+    const chat = await Chat.findById(chatId)
+    if (!chat) {
+      return res.status(404).json({
+        success: false,
+        message: "Chat not found",
+      })
+    }
+
+    // Check if user is participant
+    const isParticipant = chat.participants.some((p) => p.user.toString() === req.user._id.toString())
+
+    if (!isParticipant) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied",
+      })
+    }
+
+    // Find the message
+    const message = chat.messages.id(messageId)
+    if (!message) {
+      return res.status(404).json({
+        success: false,
+        message: "Message not found",
+      })
+    }
+
+    // Check if user is the sender of the message
+    if (message.sender.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only delete your own messages",
+      })
+    }
+
+    // Remove the message
+    chat.messages.pull(messageId)
+    await chat.save()
+
+    // Emit real-time deletion to chat room
+    const io = req.app.get("io")
+    io.to(`chat-${chatId}`).emit("message-deleted", {
+      chatId: chat._id,
+      messageId: messageId,
+    })
+
+    res.json({
+      success: true,
+      message: "Message deleted successfully",
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete message",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    })
+  }
+}
+
 module.exports = {
   getUserChats,
   getChatMessages,
   sendMessage,
   startChatWithProvider,
   markAsRead,
+  deleteMessage,
 }

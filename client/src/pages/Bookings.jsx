@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Calendar, Clock, MapPin, User, Star, Filter, Search, Plus } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 import api from "../services/api"
@@ -15,6 +15,7 @@ const Bookings = () => {
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const navigate = useNavigate()
 
   useEffect(() => {
     fetchBookings()
@@ -231,13 +232,22 @@ const Bookings = () => {
                           </div>
                         )}
                       </div>
-
-                      <Link
-                        to={`/bookings/${booking._id}`}
-                        className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors text-sm"
-                      >
-                        View Details
-                      </Link>
+                      <div className="flex items-center space-x-2">
+                        <Link
+                          to={`/bookings/${booking._id}`}
+                          className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors text-sm"
+                        >
+                          View Details
+                        </Link>
+                        {user.role === "customer" && booking.status === "completed" && (
+                          <button
+                            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
+                            onClick={() => navigate(`/bookings/create?provider=${booking.serviceProvider._id}`)}
+                          >
+                            Rebook
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -192,6 +192,23 @@ const Profile = () => {
               </div>
             </div>
           </div>
+          {/* In the profile header, after the edit/manage buttons, add contact actions for customers viewing a collector */}
+          {!isOwnProfile && profileUser.role === "service_provider" && (
+            <div className="flex items-center justify-end space-x-3 mt-4 sm:mt-0 px-6 pb-4">
+              <button
+                className="px-4 py-2 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                onClick={() => window.location.href = `/chat?user=${profileUser._id}`}
+              >
+                Send Message
+              </button>
+              <button
+                className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                onClick={() => window.location.href = `/bookings/create?provider=${profileUser._id}`}
+              >
+                Book Service
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -376,71 +393,121 @@ const Profile = () => {
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Sidebar */}
-          <div className="space-y-8">
-            {/* Stats */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Stats</h2>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Award className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Points</span>
-                  </div>
-                  <span className="font-semibold text-gray-900 dark:text-white">{profileUser.points || 0}</span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Member Since</span>
-                  </div>
-                  <span className="font-semibold text-gray-900 dark:text-white">
-                    {new Date(profileUser.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-
-                {profileUser.role === "service_provider" && (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Package className="w-4 h-4 text-green-600 dark:text-green-400" />
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Services</span>
-                      </div>
-                      <span className="font-semibold text-gray-900 dark:text-white">
-                        {profileUser.serviceProvider?.servicesOffered?.length || 0}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Last Active</span>
-                      </div>
-                      <span className="font-semibold text-gray-900 dark:text-white">
-                        {profileUser.lastLogin ? new Date(profileUser.lastLogin).toLocaleDateString() : "Never"}
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Contact Actions */}
-            {!isOwnProfile && profileUser.role === "service_provider" && (
+            {/* Reviews Section for Customers - positioned below service provider details */}
+            {profileUser.role === 'service_provider' && profileUser.ratings && profileUser.ratings.length > 0 && (profileUser.role === "service_provider" && !isOwnProfile) && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Contact</h2>
-
-                <div className="space-y-3">
-                  <button className="w-full btn-primary">Send Message</button>
-                  <button className="w-full btn-secondary">Book Service</button>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Reviews</h2>
+                <div className="space-y-4">
+                  {profileUser.ratings.map((rating, idx) => (
+                    <div key={idx} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                      <div className="flex items-center mb-2">
+                        {[1,2,3,4,5].map(star => (
+                          <span key={star} className={`text-xl ${rating.star >= star ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
+                        ))}
+                        <span className="ml-2 text-gray-700 dark:text-gray-200 font-medium">{rating.star} / 5</span>
+                      </div>
+                      <div className="mb-2 text-gray-700 dark:text-gray-200">{rating.comment}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">By {rating.citizenId?.username || 'User'} on {rating.ratedAt ? new Date(rating.ratedAt).toLocaleDateString() : ''}</div>
+                      {currentUser && rating.citizenId && rating.citizenId.toString() === currentUser._id && (
+                        <div className="flex space-x-2 mt-2">
+                          <button className="btn-secondary" onClick={() => {/* trigger edit in BookingDetails or modal */}}>Edit</button>
+                          <button className="btn-danger" onClick={async () => {
+                            await api.post(`/users/${profileUser._id}/rate`, { star: 0, comment: "" });
+                            updateUser();
+                          }}>Delete</button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
           </div>
+
+          {/* Sidebar */}
+          {!(profileUser.role === "service_provider" && !isOwnProfile) && (
+            <div className="space-y-8">
+              {/* Stats */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Stats</h2>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Award className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Points</span>
+                    </div>
+                    <span className="font-semibold text-gray-900 dark:text-white">{profileUser.points || 0}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Member Since</span>
+                    </div>
+                    <span className="font-semibold text-gray-900 dark:text-white">
+                      {new Date(profileUser.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  {profileUser.role === "service_provider" && (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Package className="w-4 h-4 text-green-600 dark:text-green-400" />
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Services</span>
+                        </div>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {profileUser.serviceProvider?.servicesOffered?.length || 0}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Last Active</span>
+                        </div>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {profileUser.lastLogin ? new Date(profileUser.lastLogin).toLocaleDateString() : "Never"}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Reviews Section for Service Providers - positioned below stats in sidebar */}
+              {profileUser.role === 'service_provider' && profileUser.ratings && profileUser.ratings.length > 0 && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Reviews</h2>
+                  <div className="space-y-4">
+                    {profileUser.ratings.map((rating, idx) => (
+                      <div key={idx} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <div className="flex items-center mb-2">
+                          {[1,2,3,4,5].map(star => (
+                            <span key={star} className={`text-xl ${rating.star >= star ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
+                          ))}
+                          <span className="ml-2 text-gray-700 dark:text-gray-200 font-medium">{rating.star} / 5</span>
+                        </div>
+                        <div className="mb-2 text-gray-700 dark:text-gray-200">{rating.comment}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">By {rating.citizenId?.username || 'User'} on {rating.ratedAt ? new Date(rating.ratedAt).toLocaleDateString() : ''}</div>
+                        {currentUser && rating.citizenId && rating.citizenId.toString() === currentUser._id && (
+                          <div className="flex space-x-2 mt-2">
+                            <button className="btn-secondary" onClick={() => {/* trigger edit in BookingDetails or modal */}}>Edit</button>
+                            <button className="btn-danger" onClick={async () => {
+                              await api.post(`/users/${profileUser._id}/rate`, { star: 0, comment: "" });
+                              updateUser();
+                            }}>Delete</button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

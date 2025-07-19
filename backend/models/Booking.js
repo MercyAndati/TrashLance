@@ -36,17 +36,7 @@ const bookingSchema = new mongoose.Schema({
     }
   },
   location: {
-    address: {
-      street: { type: String, required: true },
-      city: { type: String, required: true },
-      state: { type: String, required: true },
-      zipCode: { type: String, required: true },
-      country: { type: String, default: 'USA' }
-    },
-    coordinates: {
-      latitude: { type: Number, required: true },
-      longitude: { type: Number, required: true }
-    },
+    residence: { type: String, required: [true, 'Residence is required'] },
     accessInstructions: String,
     contactPerson: {
       name: String,
@@ -106,22 +96,6 @@ const bookingSchema = new mongoose.Schema({
     reason: String,
     notes: String
   }],
-  tracking: {
-    providerLocation: {
-      latitude: Number,
-      longitude: Number,
-      lastUpdated: Date
-    },
-    estimatedArrival: Date,
-    actualArrival: Date,
-    serviceStarted: Date,
-    serviceCompleted: Date,
-    route: [{
-      latitude: Number,
-      longitude: Number,
-      timestamp: Date
-    }]
-  },
   payment: {
     status: {
       type: String,
@@ -188,6 +162,23 @@ const bookingSchema = new mongoose.Schema({
     newDate: Date,
     reason: String,
     rescheduledAt: Date
+  },
+  tracking: {
+    serviceStarted: Date,
+    serviceCompleted: Date,
+    providerLocation: {
+      latitude: Number,
+      longitude: Number,
+      lastUpdated: Date
+    },
+    estimatedArrival: Date,
+    route: [
+      {
+        latitude: Number,
+        longitude: Number,
+        timestamp: Date
+      }
+    ]
   }
 }, {
   timestamps: true
@@ -204,6 +195,7 @@ bookingSchema.pre('save', async function(next) {
   if (!this.bookingNumber) {
     const count = await this.constructor.countDocuments();
     this.bookingNumber = `TL${Date.now()}${String(count + 1).padStart(4, '0')}`;
+    console.log('Generated bookingNumber:', this.bookingNumber); // <-- Add this line
   }
   next();
 });

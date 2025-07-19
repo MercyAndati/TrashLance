@@ -20,8 +20,22 @@ const errorHandler = (err, req, res, next) => {
 
   // Mongoose validation error
   if (err.name === 'ValidationError') {
-    const message = Object.values(err.errors).map(val => val.message).join(', ');
-    error = { message, statusCode: 400 };
+    console.log('ValidationError err.errors:', err.errors);
+    let errors = {};
+    if (Array.isArray(err.errors)) {
+      err.errors.forEach(e => {
+        if (typeof e === 'object' && e !== null) {
+          Object.keys(e).forEach(key => {
+            errors[key] = e[key];
+          });
+        }
+      });
+    } else if (typeof err.errors === 'object' && err.errors !== null) {
+      for (const key in err.errors) {
+        errors[key] = err.errors[key].message;
+      }
+    }
+    error = { message: 'Validation failed', statusCode: 400, errors };
   }
 
   // JWT errors
@@ -55,6 +69,7 @@ const errorHandler = (err, req, res, next) => {
   res.status(error.statusCode || 500).json({
     success: false,
     message: error.message || 'Server Error',
+    errors: error.errors || undefined,
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 };

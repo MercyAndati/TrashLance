@@ -10,6 +10,8 @@ const {
   completeOnboarding,
   getLocations,
   getCollectorsByLocation,
+  getUserServices,
+  rateCollector,
 } = require("../controllers/userController")
 const { authenticateToken } = require("../middleware/auth")
 const { validateObjectId, handleValidationErrors } = require("../middleware/validation")
@@ -25,9 +27,11 @@ router.get("/locations/:location/collectors", getCollectorsByLocation)
 router.use(authenticateToken)
 
 router.get("/stats", getUserStats)
+router.get("/:id/services", getUserServices)
 router.get("/:id", validateObjectId("id"), getUserById)
 router.put("/profile", updateUserProfile)
 router.post("/avatar", avatarUpload.single("avatar"), uploadAvatar)
 router.post("/complete-onboarding", completeOnboarding)
+router.post("/:id/rate", validateObjectId("id"), rateCollector)
 
 module.exports = router

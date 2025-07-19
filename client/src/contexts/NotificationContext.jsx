@@ -3,6 +3,8 @@
 import { createContext, useContext, useState, useEffect } from "react"
 import api from "../services/api"
 import { useAuth } from "./AuthContext"
+import io from "socket.io-client"
+import { Bell } from "lucide-react"
 
 const NotificationContext = createContext()
 
@@ -17,11 +19,60 @@ export const useNotifications = () => {
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
+  const [socket, setSocket] = useState(null)
+  const [toast, setToast] = useState(null)
   const { user } = useAuth()
 
   useEffect(() => {
     if (user) {
       fetchNotifications()
+      
+      // Initialize socket connection
+      const newSocket = io(import.meta.env.VITE_API_URL || "http://localhost:5000")
+      setSocket(newSocket)
+
+      // Debug socket connection
+      newSocket.on("connect", () => {
+        console.log("Socket connected:", newSocket.id)
+      })
+
+      newSocket.on("connect_error", (error) => {
+        console.error("Socket connection error:", error)
+      })
+
+      // Join user's personal room
+      newSocket.emit("join", user._id)
+      console.log("Joining user room:", user._id)
+
+      // Listen for real-time notifications
+      newSocket.on("new-notification", (data) => {
+        console.log("Received notification:", data)
+        const newNotification = {
+          _id: Date.now().toString(), // Temporary ID
+          type: data.type,
+          title: data.title,
+          message: data.message,
+          data: data.data,
+          isRead: false,
+          createdAt: new Date().toISOString()
+        }
+        
+        addNotification(newNotification)
+        
+        // Show toast for new notifications
+        setToast({
+          title: data.title,
+          message: data.message,
+          type: data.type
+        })
+        
+        // Auto-hide toast after 5 seconds
+        setTimeout(() => setToast(null), 5000)
+      })
+
+      return () => {
+        newSocket.disconnect()
+      }
     }
   }, [user])
 
@@ -64,6 +115,34 @@ export const NotificationProvider = ({ children }) => {
       }}
     >
       {children}
+      
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 max-w-sm">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <Bell className="h-5 w-5 text-green-500" />
+            </div>
+            <div className="ml-3 flex-1">
+              <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                {toast.title}
+              </h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {toast.message}
+              </p>
+            </div>
+            <button
+              onClick={() => setToast(null)}
+              className="ml-4 flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <span className="sr-only">Close</span>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </NotificationContext.Provider>
   )
 }

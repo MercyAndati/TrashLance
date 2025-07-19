@@ -29,6 +29,8 @@ const notificationSchema = new mongoose.Schema({
       'password_changed',
       'new_message',
       'new_comment',
+      'new_chat',
+      'chat_message',
       'promotion',
       'reminder'
     ]
@@ -92,7 +94,7 @@ const notificationSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['booking', 'payment', 'account', 'system', 'marketing'],
+    enum: ['booking', 'payment', 'account', 'system', 'marketing', 'chat'],
     required: true
   },
   isRead: {

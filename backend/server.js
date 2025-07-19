@@ -51,7 +51,7 @@ app.use(compression())
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 10000, // limit each IP to 100 requests per windowMs
   message: "Too many requests from this IP, please try again later.",
 })
 app.use("/api/", limiter)
@@ -88,9 +88,12 @@ app.use("/api/subscriptions", subscriptionRoutes)
 app.use("/api/admin", adminRoutes)
 app.use("/api/notifications", notificationRoutes)
 app.use("/api/posts", postRoutes)
-app.use("/api/pickup-zones", pickupZoneRoutes) // TEMPORARILY DISABLED
-app.use("/api/chats", chatRoutes) // TEMPORARILY DISABLED
+app.use("/api/pickup-zones", pickupZoneRoutes)
+app.use("/api/chats", chatRoutes) 
 app.use("/api/location", locationRoutes)
+
+// Backward compatibility: redirect /conversations to /chats
+app.use("/api/conversations", chatRoutes)
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
@@ -145,6 +148,21 @@ io.on("connection", (socket) => {
     socket.to(`chat-${data.chatId}`).emit("stop-typing", {
       userId: data.userId,
     })
+  })
+
+  // Handle new chat notifications
+  socket.on("new-chat", (data) => {
+    socket.to(data.targetUserId).emit("new-chat", data)
+  })
+
+  // Handle new notification broadcasts
+  socket.on("new-notification", (data) => {
+    socket.to(data.recipientId).emit("new-notification", data)
+  })
+
+  // Handle message deletion
+  socket.on("delete-message", (data) => {
+    socket.to(`chat-${data.chatId}`).emit("message-deleted", data)
   })
 
   socket.on("disconnect", () => {

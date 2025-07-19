@@ -12,16 +12,18 @@ const Leaderboard = () => {
   const [userRank, setUserRank] = useState(null)
   const [timeframe, setTimeframe] = useState("all")
   const [category, setCategory] = useState("points")
+  const [role, setRole] = useState("all");
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchLeaderboard()
-  }, [timeframe, category])
+  }, [timeframe, category, role])
 
   const fetchLeaderboard = async () => {
     try {
       setLoading(true)
-      const response = await api.get(`/leaderboard?timeframe=${timeframe}&category=${category}`)
+      const roleParam = role !== "all" ? `&role=${role}` : "";
+      const response = await api.get(`/users/leaderboard?timeframe=${timeframe}&category=${category}${roleParam}`)
       setLeaderboard(response.data.data.leaderboard || [])
       setUserRank(response.data.data.userRank)
     } catch (error) {
@@ -93,7 +95,18 @@ const Leaderboard = () => {
                   {user.role === "service_provider" && <option value="earnings">Earnings</option>}
                 </select>
               </div>
-
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">User Type</label>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="all">All</option>
+                  <option value="customer">Customer</option>
+                  <option value="service_provider">Service Provider</option>
+                </select>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Timeframe</label>
                 <select

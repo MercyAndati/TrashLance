@@ -133,13 +133,13 @@ const searchUsers = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
 
-    const searchQuery = {
-      $or: [
+    const searchQuery = {};
+    if (query) {
+      searchQuery.$or = [
         { username: { $regex: query, $options: 'i' } },
         { email: { $regex: query, $options: 'i' } }
-      ]
-    };
-
+      ];
+    }
     if (role) {
       searchQuery.role = role;
     }
@@ -175,32 +175,71 @@ const searchUsers = async (req, res) => {
 // Get leaderboard by points
 const getLeaderboard = async (req, res) => {
   try {
-    const type = req.query.type || 'points';
-    const limit = parseInt(req.query.limit) || 10;
-
-    let query = { role: 'service_provider' };
+    const category = req.query.category || 'points';
+    const timeframe = req.query.timeframe || 'all';
+    let query = {};
     let sort = {};
 
-    if (type === 'rating') {
+    // Filter by role if provided
+    if (req.query.role && req.query.role !== 'all') {
+      query.role = req.query.role;
+    }
+
+    // Only filter by role for service_provider-specific categories
+    if (category === 'earnings' || category === 'rating') {
+      query.role = 'service_provider';
+    }
+
+    // Sorting logic
+    if (category === 'rating') {
       sort = { 'serviceProvider.rating.average': -1 };
+    } else if (category === 'earnings') {
+      sort = { earnings: -1 };
+    } else if (category === 'reports') {
+      sort = { reports: -1 };
+    } else if (category === 'bookings') {
+      sort = { bookings: -1 };
     } else {
       sort = { points: -1 };
     }
 
-    const topUsers = await User.find(query)
-      .sort(sort)
-      .limit(limit)
-      .select('username avatar points serviceProvider.rating');
+    // TODO: Add timeframe filtering if needed
 
-    res.json({ 
-      success: true, 
-      data: topUsers 
+    // Fetch leaderboard
+    const leaderboard = await User.find(query)
+      .sort(sort)
+      .limit(50)
+      .select('username avatar points role serviceProvider.rating earnings reports bookings');
+
+    // Find current user's rank
+    let userRank = null;
+    if (req.user) {
+      const allUsers = await User.find(query).sort(sort).select('_id points role earnings reports bookings');
+      const index = allUsers.findIndex(u => u._id.toString() === req.user._id.toString());
+      if (index !== -1) {
+        userRank = {
+          position: index + 1,
+          points: allUsers[index].points,
+          role: allUsers[index].role,
+          earnings: allUsers[index].earnings,
+          reports: allUsers[index].reports,
+          bookings: allUsers[index].bookings,
+        };
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        leaderboard,
+        userRank,
+      }
     });
   } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to get leaderboard', 
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get leaderboard',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -370,7 +409,7 @@ const completeOnboarding = async (req, res) => {
 const rateCollector = async (req, res) => {
   try {
     const { star, comment } = req.body;
-    const collector = await User.findById(req.params.collectorId);
+    const collector = await User.findById(req.params.id);
 
     if (!collector || collector.role !== 'service_provider') {
       return res.status(404).json({ 
@@ -504,6 +543,15 @@ const getCollectorsByLocation = async (req, res) => {
   }
 };
 
+const getUserServices = async (req, res) => {
+  try {
+    const services = await Service.find({ provider: req.params.id, isActive: true });
+    res.json({ success: true, data: services });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to fetch services' });
+  }
+};
+
 module.exports = {
   getUserById,
   updateUserProfile,
@@ -515,4 +563,5 @@ module.exports = {
   completeOnboarding,
   getLocations,
   getCollectorsByLocation,
+  getUserServices,
 };

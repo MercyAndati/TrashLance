@@ -34,6 +34,7 @@ const Locations = () => {
       setSelectedLocation(location);
       const response = await api.get(`/users/locations/${encodeURIComponent(location)}/collectors`);
       setCollectors(response.data.data);
+      console.log('Collectors:', response.data.data); // <-- Add this log
     } catch (error) {
       console.error('Error fetching collectors:', error);
     } finally {
@@ -89,9 +90,8 @@ const Locations = () => {
               </div>
             ) : (
               locations.map((location) => {
-                const stats = getLocationStats(location);
                 const isSelected = selectedLocation === location;
-                
+                const showCollectors = isSelected && collectors.length > 0;
                 return (
                   <div
                     key={location}
@@ -106,22 +106,14 @@ const Locations = () => {
                       <div className="flex items-center space-x-3">
                         <MapPin className="w-5 h-5 text-green-600" />
                         <div>
-                          <h3 className="font-medium text-gray-900 dark:text-white">
-                            {location}
-                          </h3>
+                          <h3 className="font-medium text-gray-900 dark:text-white">{location}</h3>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {stats.totalCollectors} collectors available
+                            {showCollectors
+                              ? `${collectors.length} collector${collectors.length !== 1 ? 's' : ''} available`
+                              : 'Click to view collectors'}
                           </p>
                         </div>
                       </div>
-                      {stats.averageRating > 0 && (
-                        <div className="flex items-center space-x-1">
-                          <Star className="w-4 h-4 text-yellow-500" />
-                          <span className="text-sm font-medium text-gray-900 dark:text-white">
-                            {stats.averageRating}
-                          </span>
-                        </div>
-                      )}
                     </div>
                   </div>
                 );

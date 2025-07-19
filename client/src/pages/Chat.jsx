@@ -1,20 +1,136 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { Send, Search, Phone, Video, MoreVertical, Paperclip, Smile } from "lucide-react"
+import { useState, useEffect, useRef, useCallback } from "react"
+import { Send, Search, Phone, Video, MoreVertical, Paperclip, Smile, Trash2 } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
+import { useSearchParams } from "react-router-dom"
 import api from "../services/api"
 import LoadingSpinner from "../components/common/LoadingSpinner"
+import io from "socket.io-client"
 
 const Chat = () => {
   const { user } = useAuth()
+  const [searchParams] = useSearchParams()
   const [conversations, setConversations] = useState([])
   const [activeConversation, setActiveConversation] = useState(null)
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState("")
   const [loading, setLoading] = useState(true)
   const [sendingMessage, setSendingMessage] = useState(false)
+  const [deletingMessage, setDeletingMessage] = useState(null)
+  const [socket, setSocket] = useState(null)
   const messagesEndRef = useRef(null)
+  const fetchTimeoutRef = useRef(null)
+  const sentMessagesRef = useRef(new Set()) // Track sent messages to prevent duplicates
+  const messagesContainerRef = useRef(null)
+  const scrollPositionRef = useRef(0)
+
+  // Get user parameter from URL if provided
+  const targetUserId = searchParams.get("user")
+
+  // Initialize Socket.IO connection
+  useEffect(() => {
+    const newSocket = io("http://localhost:5000")
+    setSocket(newSocket)
+
+    // Join user's room for notifications
+    if (user?._id) {
+      newSocket.emit("join", user._id)
+    }
+
+    return () => newSocket.close()
+  }, [user])
+
+  // Debounced fetch conversations
+  const debouncedFetchConversations = useCallback(() => {
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current)
+    }
+    fetchTimeoutRef.current = setTimeout(() => {
+      fetchConversations()
+    }, 300)
+  }, [])
+
+  // Save scroll position before updates
+  const saveScrollPosition = () => {
+    if (messagesContainerRef.current) {
+      const container = messagesContainerRef.current
+      scrollPositionRef.current = container.scrollTop
+    }
+  }
+
+  // Restore scroll position after updates
+  const restoreScrollPosition = () => {
+    if (messagesContainerRef.current) {
+      const container = messagesContainerRef.current
+      container.scrollTop = scrollPositionRef.current
+    }
+  }
+
+  // Socket event listeners
+  useEffect(() => {
+    if (!socket) return
+
+    // Listen for new messages
+    socket.on("new-message", (data) => {
+      // Only process if this is for the active conversation and not from current user
+      if (data.chatId === activeConversation?._id && data.senderId !== user._id) {
+        // Save scroll position before adding message (only for incoming messages)
+        saveScrollPosition()
+        
+        // Check if we already have this message to prevent duplicates
+        setMessages(prev => {
+          const messageExists = prev.some(msg => msg._id === data.message._id)
+          if (!messageExists) {
+            // Mark as read since it's from another user
+            setTimeout(() => {
+              markMessagesAsRead(data.chatId, [data.message._id])
+            }, 1000)
+            return [...prev, data.message]
+          }
+          return prev
+        })
+
+        // Restore scroll position after state update
+        setTimeout(() => {
+          restoreScrollPosition()
+        }, 0)
+      }
+      // Update conversations list only if not currently in a chat
+      if (!activeConversation) {
+        debouncedFetchConversations()
+      }
+    })
+
+    // Listen for new chat notifications
+    socket.on("new-chat", (data) => {
+      // Only update conversations if we're not currently in a chat
+      if (!activeConversation) {
+        debouncedFetchConversations()
+      }
+    })
+
+    // Listen for message deletion
+    socket.on("message-deleted", (data) => {
+      if (data.chatId === activeConversation?._id) {
+        // Save scroll position before removing message
+        saveScrollPosition()
+        
+        setMessages(prev => prev.filter(msg => msg._id !== data.messageId))
+        
+        // Restore scroll position after state update
+        setTimeout(() => {
+          restoreScrollPosition()
+        }, 0)
+      }
+    })
+
+    return () => {
+      socket.off("new-message")
+      socket.off("new-chat")
+      socket.off("message-deleted")
+    }
+  }, [socket, activeConversation, debouncedFetchConversations, user._id])
 
   useEffect(() => {
     fetchConversations()
@@ -23,6 +139,10 @@ const Chat = () => {
   useEffect(() => {
     if (activeConversation) {
       fetchMessages(activeConversation._id)
+      // Mark messages as read when chat is opened, but with a delay
+      setTimeout(() => {
+        markMessagesAsRead(activeConversation._id)
+      }, 2000)
     }
   }, [activeConversation])
 
@@ -30,13 +150,35 @@ const Chat = () => {
     scrollToBottom()
   }, [messages])
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current)
+      }
+    }
+  }, [])
+
   const fetchConversations = async () => {
     try {
       setLoading(true)
-      const response = await api.get("/conversations")
-      setConversations(response.data.data || [])
-      if (response.data.data.length > 0) {
-        setActiveConversation(response.data.data[0])
+      const response = await api.get("/chats")
+      const chats = response.data.data?.chats || []
+      setConversations(chats)
+      
+      // If a target user is specified, try to find or create a chat with them
+      if (targetUserId && chats.length > 0) {
+        const existingChat = chats.find(chat => 
+          chat.participants.some(p => p.user._id === targetUserId)
+        )
+        if (existingChat) {
+          setActiveConversation(existingChat)
+        } else {
+          // Create a new chat with the target user
+          await startChatWithUser(targetUserId)
+        }
+      } else if (chats.length > 0) {
+        setActiveConversation(chats[0])
       }
     } catch (error) {
       console.error("Failed to fetch conversations:", error)
@@ -45,44 +187,144 @@ const Chat = () => {
     }
   }
 
+  const startChatWithUser = async (userId) => {
+    try {
+      const response = await api.post("/chats/start", {
+        providerId: userId
+      })
+      const newChat = response.data.data.chat
+      setConversations(prev => [newChat, ...prev])
+      setActiveConversation(newChat)
+      
+      // Join chat room for real-time updates
+      if (socket) {
+        socket.emit("join-chat", newChat._id)
+      }
+    } catch (error) {
+      console.error("Failed to start chat:", error)
+    }
+  }
+
   const fetchMessages = async (conversationId) => {
     try {
-      const response = await api.get(`/conversations/${conversationId}/messages`)
-      setMessages(response.data.data || [])
+      const response = await api.get(`/chats/${conversationId}/messages`)
+      setMessages(response.data.data?.messages || [])
+      
+      // Join chat room for real-time updates
+      if (socket) {
+        socket.emit("join-chat", conversationId)
+      }
     } catch (error) {
       console.error("Failed to fetch messages:", error)
     }
   }
 
+  const markMessagesAsRead = async (chatId, messageIds = []) => {
+    try {
+      await api.patch(`/chats/${chatId}/read`, { messageIds })
+      // Update conversations to reflect read status only if not in active chat
+      if (!activeConversation || activeConversation._id !== chatId) {
+        debouncedFetchConversations()
+      }
+    } catch (error) {
+      console.error("Failed to mark messages as read:", error)
+      // Don't throw error, just log it to prevent UI issues
+    }
+  }
+
   const sendMessage = async (e) => {
     e.preventDefault()
-    if (!newMessage.trim() || !activeConversation) return
+    if (!newMessage.trim() || !activeConversation || sendingMessage) return
 
+    const messageContent = newMessage.trim()
     setSendingMessage(true)
+    setNewMessage("")
+
     try {
-      const response = await api.post(`/conversations/${activeConversation._id}/messages`, {
-        content: newMessage,
+      const response = await api.post(`/chats/${activeConversation._id}/messages`, {
+        content: messageContent,
       })
 
-      setMessages((prev) => [...prev, response.data.data])
-      setNewMessage("")
+      const newMessageData = response.data.data.message
+      
+      // Add to sent messages tracking to prevent duplicates
+      sentMessagesRef.current.add(newMessageData._id)
+      
+      // Add message to local state immediately
+      setMessages((prev) => [...prev, newMessageData])
+      
+      // Scroll to bottom after sending own message
+      setTimeout(() => {
+        scrollToBottom()
+      }, 100)
+      
+      // Clear from tracking after a delay
+      setTimeout(() => {
+        sentMessagesRef.current.delete(newMessageData._id)
+      }, 5000)
+      
     } catch (error) {
       console.error("Failed to send message:", error)
+      // Restore message if send failed
+      setNewMessage(messageContent)
     } finally {
       setSendingMessage(false)
     }
   }
 
+  const deleteMessage = async (messageId) => {
+    if (!activeConversation || deletingMessage === messageId) return
+
+    setDeletingMessage(messageId)
+    try {
+      await api.delete(`/chats/${activeConversation._id}/messages/${messageId}`)
+      
+      // Remove message from local state
+      setMessages(prev => prev.filter(msg => msg._id !== messageId))
+      
+      // Emit deletion to other users via socket
+      if (socket) {
+        socket.emit("delete-message", {
+          chatId: activeConversation._id,
+          messageId: messageId
+        })
+      }
+    } catch (error) {
+      console.error("Failed to delete message:", error)
+    } finally {
+      setDeletingMessage(null)
+    }
+  }
+
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    if (messagesEndRef.current && messagesContainerRef.current) {
+      const container = messagesContainerRef.current
+      const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100
+      
+      // Only auto-scroll if user is already near bottom
+      if (isAtBottom) {
+        messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
+      }
+    }
   }
 
   const formatTime = (date) => {
-    return new Date(date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    if (!date) return ""
+    const messageDate = new Date(date)
+    if (isNaN(messageDate.getTime())) return ""
+    
+    const now = new Date()
+    const isToday = messageDate.toDateString() === now.toDateString()
+    
+    if (isToday) {
+      return messageDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    } else {
+      return messageDate.toLocaleDateString([], { month: "short", day: "numeric" })
+    }
   }
 
   const getOtherParticipant = (conversation) => {
-    return conversation.participants.find((p) => p._id !== user._id)
+    return conversation.participants.find((p) => p.user._id !== user._id)
   }
 
   if (loading) {
@@ -117,13 +359,21 @@ const Chat = () => {
           {conversations.length === 0 ? (
             <div className="p-8 text-center">
               <p className="text-gray-500 dark:text-gray-400">No conversations yet</p>
+              {targetUserId && (
+                <button
+                  onClick={() => startChatWithUser(targetUserId)}
+                  className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  Start New Conversation
+                </button>
+              )}
             </div>
           ) : (
             conversations.map((conversation) => {
               const otherParticipant = getOtherParticipant(conversation)
               return (
                 <div
-                  key={conversation._id}
+                  key={`conversation-${conversation._id}`}
                   onClick={() => setActiveConversation(conversation)}
                   className={`p-4 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 ${
                     activeConversation?._id === conversation._id ? "bg-green-50 dark:bg-green-900/20" : ""
@@ -131,28 +381,22 @@ const Chat = () => {
                 >
                   <div className="flex items-center space-x-3">
                     <img
-                      src={otherParticipant?.avatar || "/TrashLance.png"}
-                      alt={otherParticipant?.username}
+                      src={otherParticipant?.user?.avatar || "/TrashLance.png"}
+                      alt={otherParticipant?.user?.username}
                       className="w-12 h-12 rounded-full"
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                          {otherParticipant?.username}
+                          {otherParticipant?.user?.username}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {conversation.lastMessage && formatTime(conversation.lastMessage.createdAt)}
-                        </p>
+                        {conversation.unreadCount > 0 && (
+                          <span className="bg-green-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                            {conversation.unreadCount}
+                          </span>
+                        )}
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                        {conversation.lastMessage?.content || "No messages yet"}
-                      </p>
                     </div>
-                    {conversation.unreadCount > 0 && (
-                      <span className="bg-green-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
-                        {conversation.unreadCount}
-                      </span>
-                    )}
                   </div>
                 </div>
               )
@@ -170,16 +414,16 @@ const Chat = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <img
-                    src={getOtherParticipant(activeConversation)?.avatar || "/TrashLance.png"}
-                    alt={getOtherParticipant(activeConversation)?.username}
+                    src={getOtherParticipant(activeConversation)?.user?.avatar || "/TrashLance.png"}
+                    alt={getOtherParticipant(activeConversation)?.user?.username}
                     className="w-10 h-10 rounded-full"
                   />
                   <div>
                     <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                      {getOtherParticipant(activeConversation)?.username}
+                      {getOtherParticipant(activeConversation)?.user?.username}
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {getOtherParticipant(activeConversation)?.role?.replace("_", " ")}
+                      {getOtherParticipant(activeConversation)?.user?.role?.replace("_", " ")}
                     </p>
                   </div>
                 </div>
@@ -198,27 +442,43 @@ const Chat = () => {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900">
-              {messages.map((message) => (
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900" ref={messagesContainerRef}>
+              {messages.map((message, index) => (
                 <div
-                  key={message._id}
+                  key={`${message._id}-${message.sender._id}-${index}`}
                   className={`flex ${message.sender._id === user._id ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg relative group ${
                       message.sender._id === user._id
                         ? "bg-green-500 text-white"
                         : "bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                     }`}
                   >
                     <p className="text-sm">{message.content}</p>
-                    <p
-                      className={`text-xs mt-1 ${
-                        message.sender._id === user._id ? "text-green-100" : "text-gray-500 dark:text-gray-400"
-                      }`}
-                    >
-                      {formatTime(message.createdAt)}
-                    </p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p
+                        className={`text-xs ${
+                          message.sender._id === user._id ? "text-green-100" : "text-gray-500 dark:text-gray-400"
+                        }`}
+                      >
+                        {formatTime(message.sentAt || message.createdAt)}
+                      </p>
+                      {message.sender._id === user._id && (
+                        <button
+                          onClick={() => deleteMessage(message._id)}
+                          disabled={deletingMessage === message._id}
+                          className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500 hover:text-white rounded"
+                          title="Delete message"
+                        >
+                          {deletingMessage === message._id ? (
+                            <LoadingSpinner size="sm" />
+                          ) : (
+                            <Trash2 className="w-3 h-3" />
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -234,25 +494,24 @@ const Chat = () => {
                 >
                   <Paperclip className="w-5 h-5" />
                 </button>
-                <div className="flex-1 relative">
-                  <input
-                    type="text"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    className="block w-full pr-12 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="Type a message..."
-                  />
-                  <button
-                    type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  >
-                    <Smile className="w-5 h-5" />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  <Smile className="w-5 h-5" />
+                </button>
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type a message..."
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  disabled={sendingMessage}
+                />
                 <button
                   type="submit"
-                  disabled={sendingMessage || !newMessage.trim()}
-                  className="p-2 bg-green-500 hover:bg-green-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  disabled={!newMessage.trim() || sendingMessage}
+                  className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {sendingMessage ? <LoadingSpinner size="sm" /> : <Send className="w-5 h-5" />}
                 </button>

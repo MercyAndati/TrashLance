@@ -111,18 +111,6 @@ const validateBooking = [
     .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
     .withMessage("End time must be in HH:MM format"),
 
-  body("location.address.street").trim().notEmpty().withMessage("Street address is required"),
-
-  body("location.address.city").trim().notEmpty().withMessage("City is required"),
-
-  body("location.address.zipCode")
-    .matches(/^\d{5}(-\d{4})?$/)
-    .withMessage("Invalid ZIP code format"),
-
-  body("location.coordinates.latitude").isFloat({ min: -90, max: 90 }).withMessage("Invalid latitude"),
-
-  body("location.coordinates.longitude").isFloat({ min: -180, max: 180 }).withMessage("Invalid longitude"),
-
   handleValidationErrors,
 ]
 

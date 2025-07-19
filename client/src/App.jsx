@@ -22,6 +22,7 @@ import Dashboard from "./pages/Dashboard"
 import Profile from "./pages/Profile"
 import Bookings from "./pages/Bookings"
 import BookingDetails from "./pages/BookingDetails"
+import BookingCreate from "./pages/BookingCreate";
 import Posts from "././pages/Posts"
 import PostDetails from "./pages/PostDetails"
 import CreatePost from "./pages/CreatePost"
@@ -136,7 +137,14 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
-
+                <Route
+                  path="/bookings/create"
+                  element={
+                    <ProtectedRoute>
+                      <BookingCreate />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="/bookings/:id"
                   element={

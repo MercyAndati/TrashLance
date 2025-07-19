@@ -29,7 +29,7 @@ const CollectorOnboarding = () => {
     servicesOffered: [],
     subscription: "freemium",
     pricing: {
-      type: "per_service",
+      type: "fixed",
       unit: "service",
       basePrice: "",
       currency: "Ksh",

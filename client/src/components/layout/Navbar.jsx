@@ -1,27 +1,66 @@
 "use client"
 
-import { useState } from "react"
-import { Link } from "react-router-dom"
+import { useState, useEffect } from "react"
+import { Link, useNavigate } from "react-router-dom"
 import { Menu, Search, Bell, User, Settings, LogOut, Sun, Moon } from "lucide-react"
 import { useAuth } from "../../contexts/AuthContext"
 import { useTheme } from "../../contexts/ThemeContext"
 import { useNotifications } from "../../contexts/NotificationContext"
 import SubscriptionBanner from './SubscriptionBanner'
+import api from "../../services/api"
 
 const Navbar = ({ onMenuClick }) => {
   const [searchQuery, setSearchQuery] = useState("")
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
+  const [allLocations, setAllLocations] = useState([])
+  const [filteredLocations, setFilteredLocations] = useState([])
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false)
+  const [searchError, setSearchError] = useState("")
+  const navigate = useNavigate()
 
   const { user, logout } = useAuth()
   const { isDark, toggleTheme } = useTheme()
   const { notifications, unreadCount, markAsRead } = useNotifications()
 
+  useEffect(() => {
+    // Fetch all locations on mount
+    api.get("/users/locations").then(res => {
+      setAllLocations(res.data.data || [])
+      setFilteredLocations(res.data.data || [])
+    })
+  }, [])
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value
+    setSearchQuery(value)
+    setSearchError("")
+    if (!value) {
+      setFilteredLocations(allLocations)
+      setShowLocationDropdown(false)
+      return
+    }
+    const filtered = allLocations.filter(loc => loc.toLowerCase().includes(value.toLowerCase()))
+    setFilteredLocations(filtered)
+    setShowLocationDropdown(true)
+  }
+
+  const handleLocationSelect = (location) => {
+    setSearchQuery(location)
+    setShowLocationDropdown(false)
+    setSearchError("")
+    navigate(`/locations?selected=${encodeURIComponent(location)}`)
+  }
+
   const handleSearch = (e) => {
     e.preventDefault()
-    if (searchQuery.trim()) {
-      // Implement search functionality
-      console.log("Searching for:", searchQuery)
+    if (!searchQuery.trim()) return
+    const found = allLocations.find(loc => loc.toLowerCase() === searchQuery.trim().toLowerCase())
+    if (found) {
+      navigate(`/locations?selected=${encodeURIComponent(found)}`)
+    } else {
+      setSearchError("Location not available. See available locations below.")
+      navigate(`/locations?notfound=${encodeURIComponent(searchQuery.trim())}`)
     }
   }
 
@@ -57,7 +96,7 @@ const Navbar = ({ onMenuClick }) => {
 
           {/* Center - Search */}
           {user && (
-            <div className="hidden md:flex flex-1 max-w-lg mx-8">
+            <div className="hidden md:flex flex-1 max-w-lg mx-8 relative">
               <form onSubmit={handleSearch} className="w-full">
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -66,10 +105,30 @@ const Navbar = ({ onMenuClick }) => {
                   <input
                     type="text"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={handleSearchChange}
+                    onFocus={() => setShowLocationDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowLocationDropdown(false), 150)}
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     placeholder="Search by location..."
                   />
+                  {showLocationDropdown && filteredLocations.length > 0 && (
+                    <ul className="absolute z-10 left-0 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg mt-1 max-h-56 overflow-y-auto shadow-lg">
+                      {filteredLocations.map((loc, idx) => (
+                        <li
+                          key={idx}
+                          className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
+                          onMouseDown={() => handleLocationSelect(loc)}
+                        >
+                          {loc}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {searchError && (
+                    <div className="absolute left-0 right-0 mt-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded-lg px-3 py-2 text-sm">
+                      {searchError}
+                    </div>
+                  )}
                 </div>
               </form>
             </div>
@@ -117,7 +176,15 @@ const Navbar = ({ onMenuClick }) => {
                               className={`p-4 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer ${
                                 !notification.isRead ? "bg-blue-50 dark:bg-blue-900/20" : ""
                               }`}
-                              onClick={() => markAsRead(notification._id)}
+                              onClick={() => {
+                                if (notification.type === 'chat_message' && notification.data?.chatId) {
+                                  navigate(`/chat?chatId=${notification.data.chatId}`);
+                                  markAsRead(notification._id);
+                                  setShowNotifications(false);
+                                } else {
+                                  markAsRead(notification._id);
+                                }
+                              }}
                             >
                               <h4 className="font-medium text-gray-900 dark:text-white text-sm">
                                 {notification.title}

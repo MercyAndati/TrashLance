@@ -136,33 +136,40 @@ chatSchema.methods.addMessage = function (senderId, content, messageType = "text
 
 // Method to mark messages as read
 chatSchema.methods.markAsRead = function (userId, messageIds = []) {
-  if (messageIds.length === 0) {
-    // Mark all unread messages as read
-    this.messages.forEach((message) => {
-      const alreadyRead = message.readBy.some((read) => read.user.toString() === userId.toString())
+  try {
+    if (messageIds.length === 0) {
+      // Mark all unread messages as read
+      this.messages.forEach((message) => {
+        if (message && message.sender && message.readBy) {
+          const alreadyRead = message.readBy.some((read) => read.user.toString() === userId.toString())
 
-      if (!alreadyRead && message.sender.toString() !== userId.toString()) {
-        message.readBy.push({ user: userId })
-      }
-    })
-  } else {
-    // Mark specific messages as read
-    messageIds.forEach((messageId) => {
-      const message = this.messages.id(messageId)
-      if (message) {
-        const alreadyRead = message.readBy.some((read) => read.user.toString() === userId.toString())
-
-        if (!alreadyRead) {
-          message.readBy.push({ user: userId })
+          if (!alreadyRead && message.sender.toString() !== userId.toString()) {
+            message.readBy.push({ user: userId })
+          }
         }
-      }
-    })
-  }
+      })
+    } else {
+      // Mark specific messages as read
+      messageIds.forEach((messageId) => {
+        const message = this.messages.id(messageId)
+        if (message && message.readBy) {
+          const alreadyRead = message.readBy.some((read) => read.user.toString() === userId.toString())
 
-  // Update participant's last seen
-  const participant = this.participants.find((p) => p.user.toString() === userId.toString())
-  if (participant) {
-    participant.lastSeen = new Date()
+          if (!alreadyRead) {
+            message.readBy.push({ user: userId })
+          }
+        }
+      })
+    }
+
+    // Update participant's last seen
+    const participant = this.participants.find((p) => p.user.toString() === userId.toString())
+    if (participant) {
+      participant.lastSeen = new Date()
+    }
+  } catch (error) {
+    console.error("Error in markAsRead:", error)
+    // Don't throw error, just log it
   }
 }
 

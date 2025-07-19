@@ -6,6 +6,7 @@ const {
   sendMessage,
   startChatWithProvider,
   markAsRead,
+  deleteMessage,
 } = require("../controllers/chatController")
 const { authenticateToken } = require("../middleware/auth")
 const { handleValidationErrors } = require("../middleware/validation")
@@ -16,6 +17,9 @@ const validateChatId = [param("chatId").isMongoId().withMessage("Invalid chat ID
 
 // All chat routes require authentication
 router.use(authenticateToken)
+
+// Backward compatibility: /conversations redirects to /chats
+router.get("/conversations", getUserChats)
 
 // Get user's chats
 router.get("/", getUserChats)
@@ -44,6 +48,17 @@ router.post(
     handleValidationErrors,
   ],
   sendMessage,
+)
+
+// Delete message
+router.delete(
+  "/:chatId/messages/:messageId",
+  [
+    param("chatId").isMongoId().withMessage("Invalid chat ID"),
+    param("messageId").isMongoId().withMessage("Invalid message ID"),
+    handleValidationErrors,
+  ],
+  deleteMessage,
 )
 
 // Mark messages as read
