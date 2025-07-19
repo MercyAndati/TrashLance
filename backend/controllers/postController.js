@@ -150,6 +150,19 @@ const getPostById = async (req, res) => {
       })
     }
 
+    // Debug logging
+    console.log('View count debug:', {
+      reqUser: req.user ? req.user._id : null,
+      author: post.author ? post.author._id : null,
+      isAuthor: req.user && post.author && post.author._id.toString() === req.user._id.toString()
+    })
+
+    // Increment view count if the requester is not the author
+    if (!req.user || (post.author && post.author._id.toString() !== req.user._id.toString())) {
+      post.views = (post.views || 0) + 1
+      await post.save()
+    }
+
     res.json({
       success: true,
       data: { post },
@@ -308,11 +321,40 @@ const addComment = async (req, res) => {
       data: { comment: newComment },
     })
   } catch (error) {
+    console.error('Add comment error:', error);
     res.status(500).json({
       success: false,
       message: "Failed to add comment",
       error: process.env.NODE_ENV === "development" ? error.message : undefined,
     })
+  }
+}
+
+// Delete comment from post
+const deleteComment = async (req, res) => {
+  try {
+    const { postId, commentId } = req.params
+    const post = await Post.findById(postId)
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post not found" })
+    }
+    const comment = post.comments.id(commentId)
+    if (!comment) {
+      return res.status(404).json({ success: false, message: "Comment not found" })
+    }
+    // Only author of comment or admin can delete
+    if (
+      comment.author.toString() !== req.user._id.toString() &&
+      req.user.role !== "admin"
+    ) {
+      return res.status(403).json({ success: false, message: "Not authorized to delete this comment" })
+    }
+    post.comments.pull(commentId)
+    await post.save()
+    res.json({ success: true, message: "Comment deleted successfully" })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ success: false, message: "Failed to delete comment" })
   }
 }
 
@@ -400,6 +442,7 @@ module.exports = {
   updatePostStatus,
   toggleUpvote,
   addComment,
+  deleteComment,
   deletePost,
   getUserPosts,
 }

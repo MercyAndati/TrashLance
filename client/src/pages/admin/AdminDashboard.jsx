@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Users, Calendar, FileText, DollarSign, TrendingUp, AlertTriangle, CheckCircle, Clock } from "lucide-react"
+import { Link, useNavigate } from "react-router-dom"
 import api from "../../services/api"
 import LoadingSpinner from "../../components/common/LoadingSpinner"
 

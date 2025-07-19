@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
-import { MapPin, Calendar, AlertTriangle, Eye, MessageCircle, Filter, Search, Plus } from "lucide-react"
+import { MapPin, Calendar, AlertTriangle, Eye, MessageCircle, Filter, Search, Plus, ThumbsUp } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 import api from "../services/api"
 import LoadingSpinner from "../components/common/LoadingSpinner"
@@ -67,6 +67,26 @@ const Posts = () => {
         return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300"
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300"
+    }
+  }
+
+  const handleUpvote = async (postId, hasUpvoted) => {
+    try {
+      const response = await api.post(`/posts/${postId}/upvote`)
+      setPosts((prev) =>
+        prev.map((post) =>
+          post._id === postId
+            ? {
+                ...post,
+                upvotes: hasUpvoted
+                  ? post.upvotes.filter((u) => u !== user._id)
+                  : [...(post.upvotes || []), user._id],
+              }
+            : post
+        )
+      )
+    } catch (error) {
+      alert("Failed to upvote post.")
     }
   }
 
@@ -178,7 +198,7 @@ const Posts = () => {
                 {/* Image */}
                 <div className="relative h-48">
                   <img
-                    src={post.images?.[0]?.url || "/placeholder.svg?height=200&width=300"}
+                    src={post.images?.[0]?.url || "/TrashLance.png?height=200&width=300"}
                     alt={post.title}
                     className="w-full h-full object-cover"
                   />
@@ -225,6 +245,18 @@ const Posts = () => {
                       <div className="flex items-center space-x-1">
                         <MessageCircle className="w-4 h-4 text-gray-400" />
                         <span className="text-sm text-gray-600 dark:text-gray-400">{post.comments?.length || 0}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <button
+                          type="button"
+                          disabled={user.role === "admin"}
+                          onClick={() => handleUpvote(post._id, post.upvotes && post.upvotes.includes(user._id))}
+                          className={`focus:outline-none ${post.upvotes && post.upvotes.includes(user._id) ? "text-blue-600" : "text-gray-400"}`}
+                          title={user.role === "admin" ? "Admins cannot upvote" : post.upvotes && post.upvotes.includes(user._id) ? "Remove upvote" : "Upvote"}
+                        >
+                          <ThumbsUp className="w-4 h-4" />
+                        </button>
+                        <span className="text-sm text-gray-600 dark:text-gray-400">{post.upvotes ? post.upvotes.length : 0}</span>
                       </div>
                     </div>
 

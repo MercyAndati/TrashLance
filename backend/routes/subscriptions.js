@@ -1,16 +1,15 @@
 const express = require("express")
 const router = express.Router()
-const { subscribe, getCurrentPlan, getAvailablePlans } = require("../controllers/subscriptionController")
+const { getSubscriptionStatus, updateSubscription } = require("../controllers/subscriptionController")
 const { authenticateToken } = require("../middleware/auth")
 
 // Must be logged in to manage subscriptions
 router.use(authenticateToken)
 
-// ✅ Specific routes first
-router.get("/plans", getAvailablePlans)
-router.get("/current", getCurrentPlan)
+// Get current subscription status
+router.get("/status", getSubscriptionStatus)
 
-// ✅ Then POST routes
-router.post("/", subscribe)
+// Update subscription plan
+router.put("/update", updateSubscription)
 
 module.exports = router

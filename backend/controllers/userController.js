@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Booking = require('../models/Booking');
+const Service = require('../models/Service');
 const Notification = require('../models/Notification');
 const { calculateDistance } = require('../utils/location');
 
@@ -204,6 +205,167 @@ const getLeaderboard = async (req, res) => {
   }
 };
 
+// Complete onboarding for service providers
+const completeOnboarding = async (req, res) => {
+  try {
+    console.log("=== ONBOARDING DEBUG ===");
+    console.log("Request headers:", req.headers);
+    console.log("Request body keys:", Object.keys(req.body));
+    console.log("Received onboarding data:", req.body);
+    console.log("Company name from body:", req.body.companyName);
+    console.log("Subscription from body:", req.body.subscription);
+    
+    // Use req.body directly since we're now sending JSON
+    const {
+      companyName,
+      businessLicense,
+      servicesOffered,
+      workingHours,
+      serviceRadius,
+      serviceLocations,
+      subscription,
+      pricing
+    } = req.body;
+
+    // Validate required fields
+    console.log("Validation check:", { companyName, servicesOffered, pricing });
+    console.log("Subscription mapping:", { 
+      subscription, 
+      mappedPlan: subscription === 'freemium' ? 'Free' : subscription === 'standard' ? 'Standard' : subscription === 'premium' ? 'Premium' : 'Free' 
+    });
+    
+    if (!companyName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required field: company name'
+      });
+    }
+    
+    if (!servicesOffered) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required field: services offered'
+      });
+    }
+    
+    if (!pricing) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required field: pricing'
+      });
+    }
+
+    // Update user with service provider information
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        role: 'service_provider',
+        'serviceProvider.companyName': companyName,
+        'serviceProvider.businessLicense': businessLicense || '',
+        'serviceProvider.servicesOffered': [], // Will be populated by services created below
+        'serviceProvider.workingHours': workingHours,
+        'serviceProvider.serviceRadius': serviceRadius || 10,
+        'serviceProvider.serviceLocations': serviceLocations || '',
+        'serviceProvider.subscription': {
+          plan: subscription === 'freemium' ? 'Free' : subscription === 'standard' ? 'Standard' : subscription === 'premium' ? 'Premium' : 'Free',
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+        },
+        'serviceProvider.isVerified': false, // Will be verified by admin
+        'serviceProvider.documents': [] // Initialize as empty array, will be handled separately
+      },
+      { new: true, runValidators: true }
+    ).select('-password -refreshToken');
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Create services for the provider based on selected service types
+    if (servicesOffered && servicesOffered.length > 0) {
+      const serviceTypes = {
+        residential_pickup: { name: 'Residential Pickup', description: 'Regular household waste collection', category: 'residential_pickup' },
+        commercial_pickup: { name: 'Commercial Pickup', description: 'Business waste collection', category: 'commercial_pickup' },
+        bulk_removal: { name: 'Bulk Item Removal', description: 'Large item disposal service', category: 'bulk_items' },
+        recycling: { name: 'Recycling Services', description: 'Specialized recycling collection', category: 'recycling' },
+        hazardous_waste: { name: 'Hazardous Waste', description: 'Safe disposal of hazardous materials', category: 'hazardous_waste' },
+        construction_debris: { name: 'Construction Debris', description: 'Construction and demolition waste', category: 'construction_debris' }
+      };
+
+              const servicePromises = servicesOffered.map(serviceType => {
+          const serviceInfo = serviceTypes[serviceType];
+          return Service.create({
+            provider: req.user._id,
+            name: serviceInfo.name,
+            description: serviceInfo.description,
+            category: serviceInfo.category,
+            pricing: {
+              type: pricing.type,
+              basePrice: parseFloat(pricing.basePrice),
+              unit: pricing.unit,
+              currency: pricing.currency || 'Ksh',
+              additionalFees: pricing.additionalFee ? [{
+                name: 'Additional Fee',
+                amount: parseFloat(pricing.additionalFee),
+                description: pricing.additionalFeeReason || 'Additional service fee'
+              }] : []
+            },
+            duration: {
+              estimated: 60, // Default 1 hour
+              minimum: 30,
+              maximum: 120
+            },
+            isActive: true
+          });
+        });
+
+      const createdServices = await Promise.all(servicePromises);
+      
+      // Update user with service references
+      await User.findByIdAndUpdate(req.user._id, {
+        'serviceProvider.servicesOffered': createdServices.map(service => service._id)
+      });
+    }
+
+    // Send notification to admin for verification (optional - can be implemented later)
+    try {
+      // Find an admin user to send notification to
+      const adminUser = await User.findOne({ role: 'admin' });
+      if (adminUser) {
+        await Notification.createAndSend({
+          recipient: adminUser._id,
+          type: 'new_service_provider',
+          title: 'New Service Provider Registration',
+          message: `${updatedUser.username} has completed onboarding and requires verification.`,
+          category: 'verification',
+          data: {
+            userId: updatedUser._id,
+            actionUrl: `/admin/users/${updatedUser._id}`
+          }
+        });
+      }
+    } catch (notificationError) {
+      console.log('Notification sending failed (non-critical):', notificationError.message);
+    }
+
+    res.json({
+      success: true,
+      message: 'Onboarding completed successfully',
+      data: updatedUser
+    });
+  } catch (error) {
+    console.error('Error completing onboarding:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to complete onboarding',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 // Rate or update rating for a collector
 const rateCollector = async (req, res) => {
   try {
@@ -280,6 +442,68 @@ const rateCollector = async (req, res) => {
   }
 };
 
+// Get all unique locations from service providers
+const getLocations = async (req, res) => {
+  try {
+    const locations = await User.distinct('serviceProvider.serviceLocations', {
+      role: 'service_provider',
+      'serviceProvider.serviceLocations': { $exists: true, $ne: '' }
+    });
+
+    // Filter out empty locations and split comma-separated locations
+    const allLocations = [];
+    locations.forEach(locationString => {
+      if (locationString) {
+        const locationArray = locationString.split(',').map(loc => loc.trim());
+        allLocations.push(...locationArray);
+      }
+    });
+
+    // Remove duplicates and empty strings
+    const uniqueLocations = [...new Set(allLocations)].filter(loc => loc.length > 0);
+
+    res.json({
+      success: true,
+      data: uniqueLocations
+    });
+  } catch (error) {
+    console.error('Error fetching locations:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch locations',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// Get collectors by location
+const getCollectorsByLocation = async (req, res) => {
+  try {
+    const { location } = req.params;
+    const decodedLocation = decodeURIComponent(location);
+
+    const collectors = await User.find({
+      role: 'service_provider',
+      'serviceProvider.serviceLocations': { $regex: decodedLocation, $options: 'i' }
+    })
+    .select('username avatar serviceProvider.companyName serviceProvider.rating serviceProvider.serviceLocations serviceProvider.serviceRadius serviceProvider.servicesOffered')
+    .populate('serviceProvider.servicesOffered', 'name category')
+    .sort({ 'serviceProvider.rating.average': -1 });
+
+    res.json({
+      success: true,
+      data: collectors
+    });
+  } catch (error) {
+    console.error('Error fetching collectors by location:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch collectors',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 module.exports = {
   getUserById,
   updateUserProfile,
@@ -287,5 +511,8 @@ module.exports = {
   getUserStats,
   searchUsers,
   getLeaderboard,
-  rateCollector
+  rateCollector,
+  completeOnboarding,
+  getLocations,
+  getCollectorsByLocation,
 };

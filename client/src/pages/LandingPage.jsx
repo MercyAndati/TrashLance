@@ -7,25 +7,25 @@ const LandingPage = () => {
       icon: <Search className="w-8 h-8 text-green-600" />,
       title: "Search & Book a Trash Collector",
       description: "Find verified waste collectors in your area and book services instantly",
-      image: "/placeholder.svg?height=200&width=300",
+      image: "/TrashLance.png?height=200&width=300",
     },
     {
       icon: <AlertTriangle className="w-8 h-8 text-red-600" />,
       title: "Report Illegal Dumpsites",
       description: "Help keep your community clean by reporting illegal dumping to authorities",
-      image: "/placeholder.svg?height=200&width=300",
+      image: "/TrashLance.png?height=200&width=300",
     },
     {
       icon: <Recycle className="w-8 h-8 text-blue-600" />,
       title: "Connect for Recycled Items",
       description: "Connect with clients who need recycled materials collection services",
-      image: "/placeholder.svg?height=200&width=300",
+      image: "/TrashLance.png?height=200&width=300",
     },
     {
       icon: <BarChart3 className="w-8 h-8 text-purple-600" />,
       title: "Track Your Environmental Impact",
       description: "Monitor your bookings and see your positive environmental contribution",
-      image: "/placeholder.svg?height=200&width=300",
+      image: "/TrashLance.png?height=200&width=300",
     },
   ]
 
@@ -78,7 +78,7 @@ const LandingPage = () => {
 
             <div className="relative">
               <img
-                src="/placeholder.svg?height=500&width=600"
+                src="/TrashLance.png?height=500&width=600"
                 alt="Waste Management"
                 className="w-full h-auto rounded-2xl shadow-2xl"
               />
@@ -145,7 +145,7 @@ const LandingPage = () => {
                     <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">{feature.title}</h3>
                     <p className="text-gray-600 dark:text-gray-300 mb-4">{feature.description}</p>
                     <img
-                      src={feature.image || "/placeholder.svg"}
+                      src={feature.image || "/TrashLance.png"}
                       alt={feature.title}
                       className="w-full h-32 object-cover rounded-lg"
                     />

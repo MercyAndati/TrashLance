@@ -251,7 +251,7 @@ const Dashboard = () => {
                     className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
                   >
                     <img
-                      src={collector.avatar || "/placeholder.svg"}
+                      src={collector.avatar || "/TrashLance.png"}
                       alt={collector.username}
                       className="w-10 h-10 rounded-full"
                     />
@@ -291,7 +291,7 @@ const Dashboard = () => {
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Link
-          to="/services/create"
+          to="/services/add"
           className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200 dark:border-gray-700"
         >
           <div className="flex items-center space-x-4">
@@ -299,8 +299,8 @@ const Dashboard = () => {
               <Plus className="w-6 h-6 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-white">Add Service</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Create new service</p>
+              <h3 className="font-semibold text-gray-900 dark:text-white">Add Services</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Manage service categories</p>
             </div>
           </div>
         </Link>
@@ -409,7 +409,7 @@ const Dashboard = () => {
               </p>
             </div>
             <Link
-              to="/subscriptions"
+              to="/subscription"
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
             >
               {user.serviceProvider.subscription.plan === "Free" ? "Upgrade Plan" : "Manage Plan"}
@@ -443,7 +443,7 @@ const Dashboard = () => {
                 >
                   <div className="flex items-center space-x-4">
                     <img
-                      src={booking.customer?.avatar || "/placeholder.svg"}
+                      src={booking.customer?.avatar || "/TrashLance.png"}
                       alt={booking.customer?.username}
                       className="w-10 h-10 rounded-full"
                     />

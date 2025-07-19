@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { calculateDistance } = require('../utils/location');
 const { sendEmail } = require('../utils/email');
+const { getPlanLimit, getEffectivePlan, isSubscriptionExpired } = require('../config/subscription');
 
 // Create booking
 const createBooking = async (req, res) => {
@@ -36,12 +37,21 @@ const createBooking = async (req, res) => {
       });
     }
     // ✅ Enforce subscription plan limits
-    const activePlan = provider.serviceProvider?.subscription?.plan || 'Free';
-    const activeEnd = new Date(provider.serviceProvider?.subscription?.endDate || 0);
+    const effectivePlan = getEffectivePlan(provider);
+    const planLimit = getPlanLimit(effectivePlan);
     const now = new Date();
 
-    if (now > activeEnd) {
-      return res.status(403).json({ success: false, message: 'Subscription expired. Please renew to accept bookings.' });
+    // Check if subscription is expired
+    if (provider.serviceProvider?.subscription?.endDate && isSubscriptionExpired(provider.serviceProvider.subscription.endDate)) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Your subscription has expired. You are now on the Free plan. Please renew to access higher limits.',
+        data: {
+          currentPlan: 'Free',
+          planLimit: getPlanLimit('Free'),
+          isExpired: true
+        }
+      });
     }
 
     const monthlyBookingCount = await Booking.countDocuments({
@@ -52,13 +62,23 @@ const createBooking = async (req, res) => {
       }
     });
 
-    const planLimits = { Free: 10, Standard: 50, Premium: Infinity };
-    if (monthlyBookingCount >= planLimits[activePlan]) {
+    // Check if limit reached
+    if (monthlyBookingCount >= planLimit) {
       return res.status(403).json({
         success: false,
-        message: `Booking limit reached for your current plan (${activePlan}). Upgrade to accept more bookings.`
+        message: `Booking limit reached for your current plan (${effectivePlan}). Upgrade to accept more bookings.`,
+        data: {
+          currentPlan: effectivePlan,
+          planLimit,
+          currentCount: monthlyBookingCount,
+          isLimitReached: true
+        }
       });
     }
+
+    // Check if close to limit (warning)
+    const remainingBookings = planLimit - monthlyBookingCount;
+    const isCloseToLimit = remainingBookings <= 2 && remainingBookings > 0;
 
     // Check if provider offers this service
     if (!provider.serviceProvider.servicesOffered.includes(service)) {
@@ -172,7 +192,17 @@ const createBooking = async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Booking created successfully',
-      data: { booking }
+      data: { 
+        booking,
+        subscriptionInfo: {
+          currentPlan: effectivePlan,
+          planLimit,
+          currentCount: monthlyBookingCount + 1, // +1 for this booking
+          remainingBookings: remainingBookings - 1,
+          isCloseToLimit,
+          isExpired: false
+        }
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -202,22 +232,29 @@ const getUserBookings = async (req, res) => {
       query.status = status;
     }
 
-    const options = {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      sort: { [sortBy]: sortOrder === 'desc' ? -1 : 1 },
-      populate: [
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    const bookings = await Booking.find(query)
+      .populate([
         { path: 'customer', select: 'username email phone avatar' },
         { path: 'serviceProvider', select: 'username email phone serviceProvider.companyName avatar' },
         { path: 'service', select: 'name category pricing images' }
-      ]
-    };
+      ])
+      .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
+      .skip(skip)
+      .limit(parseInt(limit));
 
-    const bookings = await Booking.paginate(query, options);
+    const total = await Booking.countDocuments(query);
 
     res.json({
       success: true,
-      data: bookings
+      data: {
+        docs: bookings,
+        totalDocs: total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / parseInt(limit))
+      }
     });
   } catch (error) {
     res.status(500).json({

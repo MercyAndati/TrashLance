@@ -195,7 +195,7 @@ const AdminUsers = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <img
-                          src={user.avatar || "/placeholder.svg"}
+                          src={user.avatar || "/TrashLance.png"}
                           alt={user.username}
                           className="w-10 h-10 rounded-full"
                         />

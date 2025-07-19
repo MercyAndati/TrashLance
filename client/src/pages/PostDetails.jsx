@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { MapPin, Calendar, Eye, MessageCircle, ArrowLeft, Clock, CheckCircle } from "lucide-react"
+import { MapPin, Calendar, Eye, MessageCircle, ArrowLeft, Clock, CheckCircle, Trash2, X } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 import api from "../services/api"
 import LoadingSpinner from "../components/common/LoadingSpinner"
@@ -25,7 +25,8 @@ const PostDetails = () => {
     try {
       setLoading(true)
       const response = await api.get(`/posts/${id}`)
-      setPost(response.data.data)
+      console.log("Post details response:", response.data)
+      setPost(response.data.data.post)
     } catch (error) {
       console.error("Failed to fetch post details:", error)
     } finally {
@@ -37,7 +38,7 @@ const PostDetails = () => {
     try {
       setActionLoading(true)
       const response = await api.put(`/posts/${id}/status`, { status: newStatus })
-      setPost(response.data.data)
+      setPost(response.data.data.post)
     } catch (error) {
       console.error("Failed to update post status:", error)
     } finally {
@@ -52,12 +53,39 @@ const PostDetails = () => {
     try {
       setSubmittingComment(true)
       const response = await api.post(`/posts/${id}/comments`, { content: comment })
-      setPost(response.data.data)
+      // Optimistically add the new comment to the UI
+      setPost((prev) => ({
+        ...prev,
+        comments: [...(prev.comments || []), response.data.data.comment],
+      }))
       setComment("")
     } catch (error) {
       console.error("Failed to submit comment:", error)
     } finally {
       setSubmittingComment(false)
+    }
+  }
+
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm("Are you sure you want to delete this comment?")) return
+    try {
+      await api.delete(`/posts/${post._id}/comments/${commentId}`)
+      setPost((prev) => ({
+        ...prev,
+        comments: prev.comments.filter((c) => c._id !== commentId),
+      }))
+    } catch (error) {
+      alert("Failed to delete comment.")
+    }
+  }
+
+  const handleDeletePost = async () => {
+    if (!window.confirm("Are you sure you want to delete this post? This action cannot be undone.")) return
+    try {
+      await api.delete(`/posts/${post._id}`)
+      navigate("/posts")
+    } catch (error) {
+      alert("Failed to delete post.")
     }
   }
 
@@ -91,6 +119,27 @@ const PostDetails = () => {
     }
   }
 
+  const statusSteps = [
+    { value: "reported", label: "Reported" },
+    { value: "acknowledged", label: "Acknowledged" },
+    { value: "in_progress", label: "In Progress" },
+    { value: "completed", label: "Completed" },
+    { value: "rejected", label: "Rejected" },
+  ]
+
+  const handleStatusStepClick = async (step) => {
+    if (post.status === step) return
+    try {
+      setActionLoading(true)
+      const response = await api.patch(`/posts/${post._id}/status`, { status: step })
+      setPost(response.data.data.post)
+    } catch (error) {
+      alert("Failed to update status.")
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -121,10 +170,22 @@ const PostDetails = () => {
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div>
+          <div className="flex items-center">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Report Details</h1>
-            <p className="text-gray-600 dark:text-gray-400">#{post._id.slice(-8)}</p>
+            {/* Delete post icon for author or admin */}
+            {(user && (user._id === post.author?._id || user.role === "admin")) && (
+              <button
+                onClick={handleDeletePost}
+                className="ml-4 text-red-500 hover:text-red-700"
+                title="Delete post"
+              >
+                <Trash2 className="w-6 h-6" />
+              </button>
+            )}
           </div>
+          <p className="text-gray-600 dark:text-gray-400">
+            #{post && post._id ? post._id.slice(-8) : ""}
+          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -134,9 +195,11 @@ const PostDetails = () => {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex space-x-2">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(post.status)}`}>
-                    {post.status.replace("_", " ").toUpperCase()}
-                  </span>
+                {post.status ? (
+  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(post.status)}`}>
+    {post.status.replace("_", " ").toUpperCase()}
+  </span>
+) : null}
                   {post.severity && (
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${getSeverityColor(post.severity)}`}>
                       {post.severity.toUpperCase()}
@@ -154,6 +217,34 @@ const PostDetails = () => {
                   </div>
                 </div>
               </div>
+            {/* Status Stepper for admin/government */}
+            {(user && ["admin", "government"].includes(user.role)) && (
+              <div className="flex items-center space-x-4 mb-6">
+                {statusSteps.map((step, idx) => (
+                  <div key={step.value} className="flex items-center">
+                    <button
+                      type="button"
+                      className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${
+                        post.status === step.value
+                          ? "bg-blue-600 border-blue-600 text-white"
+                          : "bg-white border-gray-300 text-gray-500 dark:bg-gray-700 dark:border-gray-600"
+                      } ${actionLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                      disabled={actionLoading}
+                      onClick={() => handleStatusStepClick(step.value)}
+                      title={`Set status to ${step.label}`}
+                    >
+                      {step.value === "rejected" ? <X className="w-5 h-5" /> : idx + 1}
+                    </button>
+                    <span className={`ml-2 text-sm font-medium ${post.status === step.value ? "text-blue-600" : "text-gray-600 dark:text-gray-400"}`}>
+                      {step.label}
+                    </span>
+                    {idx < statusSteps.length - 1 && (
+                      <span className="mx-2 text-gray-400">→</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
 
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{post.title}</h2>
               <p className="text-gray-600 dark:text-gray-400 mb-6">{post.description}</p>
@@ -263,6 +354,16 @@ const PostDetails = () => {
                             <span className="text-sm text-gray-600 dark:text-gray-400">
                               {new Date(comment.createdAt).toLocaleString()}
                             </span>
+                            {/* Delete icon for comment author or admin */}
+                            {(user && (user._id === comment.author?._id || user.role === "admin")) && (
+                              <button
+                                onClick={() => handleDeleteComment(comment._id)}
+                                className="ml-2 text-red-500 hover:text-red-700"
+                                title="Delete comment"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                           <p className="text-gray-600 dark:text-gray-400">{comment.content}</p>
                         </div>

@@ -9,6 +9,7 @@ const {
   addComment,
   deletePost,
   getUserPosts,
+  deleteComment,
 } = require("../controllers/postController")
 const { authenticateToken, requireAdmin } = require("../middleware/auth")
 const { validateObjectId, handleValidationErrors } = require("../middleware/validation")
@@ -64,6 +65,13 @@ router.post(
     handleValidationErrors,
   ],
   addComment,
+)
+// Delete comment
+router.delete(
+  "/:postId/comments/:commentId",
+  validateObjectId("postId"),
+  validateObjectId("commentId"),
+  deleteComment
 )
 
 // Update status (Admin/Government only)

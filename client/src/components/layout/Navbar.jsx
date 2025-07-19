@@ -6,6 +6,7 @@ import { Menu, Search, Bell, User, Settings, LogOut, Sun, Moon } from "lucide-re
 import { useAuth } from "../../contexts/AuthContext"
 import { useTheme } from "../../contexts/ThemeContext"
 import { useNotifications } from "../../contexts/NotificationContext"
+import SubscriptionBanner from './SubscriptionBanner'
 
 const Navbar = ({ onMenuClick }) => {
   const [searchQuery, setSearchQuery] = useState("")
@@ -30,9 +31,11 @@ const Navbar = ({ onMenuClick }) => {
   }
 
   return (
-    <nav className="bg-white dark:bg-gray-800 shadow-lg border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+    <>
+      <SubscriptionBanner />
+      <nav className="bg-white dark:bg-gray-800 shadow-lg border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
           {/* Left side */}
           <div className="flex items-center space-x-4">
             {user && (
@@ -150,7 +153,7 @@ const Navbar = ({ onMenuClick }) => {
                   >
                     {user.avatar ? (
                       <img
-                        src={user.avatar || "/placeholder.svg"}
+                        src={user.avatar || "/TrashLance.png"}
                         alt={user.username}
                         className="w-6 h-6 rounded-full"
                       />
@@ -247,6 +250,7 @@ const Navbar = ({ onMenuClick }) => {
         />
       )}
     </nav>
+    </>
   )
 }
 

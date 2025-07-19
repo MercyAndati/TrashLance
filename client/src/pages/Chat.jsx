@@ -131,7 +131,7 @@ const Chat = () => {
                 >
                   <div className="flex items-center space-x-3">
                     <img
-                      src={otherParticipant?.avatar || "/placeholder.svg"}
+                      src={otherParticipant?.avatar || "/TrashLance.png"}
                       alt={otherParticipant?.username}
                       className="w-12 h-12 rounded-full"
                     />
@@ -170,7 +170,7 @@ const Chat = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <img
-                    src={getOtherParticipant(activeConversation)?.avatar || "/placeholder.svg"}
+                    src={getOtherParticipant(activeConversation)?.avatar || "/TrashLance.png"}
                     alt={getOtherParticipant(activeConversation)?.username}
                     className="w-10 h-10 rounded-full"
                   />

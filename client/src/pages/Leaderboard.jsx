@@ -135,7 +135,7 @@ const Leaderboard = () => {
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 text-center">
                 <div className="relative mb-4">
                   <img
-                    src={leaderboard[1]?.avatar || "/placeholder.svg"}
+                    src={leaderboard[1]?.avatar || "/TrashLance.png"}
                     alt={leaderboard[1]?.username}
                     className="w-20 h-20 rounded-full mx-auto border-4 border-gray-300"
                   />
@@ -161,7 +161,7 @@ const Leaderboard = () => {
               <div className="bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg shadow-lg p-6 text-center text-white transform scale-105">
                 <div className="relative mb-4">
                   <img
-                    src={leaderboard[0]?.avatar || "/placeholder.svg"}
+                    src={leaderboard[0]?.avatar || "/TrashLance.png"}
                     alt={leaderboard[0]?.username}
                     className="w-24 h-24 rounded-full mx-auto border-4 border-white"
                   />
@@ -185,7 +185,7 @@ const Leaderboard = () => {
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 text-center">
                 <div className="relative mb-4">
                   <img
-                    src={leaderboard[2]?.avatar || "/placeholder.svg"}
+                    src={leaderboard[2]?.avatar || "/TrashLance.png"}
                     alt={leaderboard[2]?.username}
                     className="w-20 h-20 rounded-full mx-auto border-4 border-amber-300"
                   />
@@ -232,7 +232,7 @@ const Leaderboard = () => {
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center justify-center w-8">{getRankIcon(index + 1)}</div>
                     <img
-                      src={member.avatar || "/placeholder.svg"}
+                      src={member.avatar || "/TrashLance.png"}
                       alt={member.username}
                       className="w-12 h-12 rounded-full"
                     />

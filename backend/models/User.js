@@ -122,6 +122,11 @@ const userSchema = new mongoose.Schema(
         type: Number,
         default: 10, // kilometers
       },
+      serviceLocations: {
+        type: String,
+        trim: true,
+        maxlength: [500, "Service locations cannot exceed 500 characters"]
+      },
       isVerified: {
         type: Boolean,
         default: false,

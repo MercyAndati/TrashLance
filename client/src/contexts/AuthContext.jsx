@@ -14,7 +14,11 @@ export const useAuth = () => {
 }
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null)
+  // Try to load user from localStorage first
+  const [user, setUser] = useState(() => {
+    const storedUser = localStorage.getItem("user")
+    return storedUser ? JSON.parse(storedUser) : null
+  })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -27,12 +31,19 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         api.defaults.headers.common["Authorization"] = `Bearer ${token}`
         const response = await api.get("/auth/me")
-        setUser(response.data.data)
+        // Set and store the plain user object
+        setUser(response.data.data.user)
+        localStorage.setItem("user", JSON.stringify(response.data.data.user))
+      } else {
+        setUser(null)
+        localStorage.removeItem("user")
       }
     } catch (error) {
       console.error("Auth check failed:", error)
       localStorage.removeItem("token")
+      localStorage.removeItem("user")
       delete api.defaults.headers.common["Authorization"]
+      setUser(null)
     } finally {
       setLoading(false)
     }
@@ -44,6 +55,7 @@ export const AuthProvider = ({ children }) => {
       const { token, user } = response.data.data
 
       localStorage.setItem("token", token)
+      localStorage.setItem("user", JSON.stringify(user))
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`
       setUser(user)
 
@@ -52,7 +64,7 @@ export const AuthProvider = ({ children }) => {
       console.error("Login failed:", error)
       return {
         success: false,
-        error: error.response?.data?.message || "Login failed",
+        message: error.response?.data?.message || "Login failed",
       }
     }
   }
@@ -111,6 +123,7 @@ export const AuthProvider = ({ children }) => {
       const { token, user } = response.data.data
 
       localStorage.setItem("token", token)
+      localStorage.setItem("user", JSON.stringify(user))
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`
       setUser(user)
 
@@ -128,12 +141,14 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem("token")
+    localStorage.removeItem("user")
     delete api.defaults.headers.common["Authorization"]
     setUser(null)
   }
 
   const updateUser = (updatedUser) => {
     setUser(updatedUser)
+    localStorage.setItem("user", JSON.stringify(updatedUser))
   }
 
   const value = {

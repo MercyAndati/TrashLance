@@ -29,7 +29,13 @@ import Chat from "./pages/Chat"
 import Leaderboard from "./pages/Leaderboard"
 import Settings from "./pages/Settings"
 import AdminDashboard from "./pages/admin/AdminDashboard"
+import AdminPosts from "./pages/admin/AdminPosts"
 import CollectorOnboarding from "./pages/CollectorOnboarding"
+import SubscriptionManagement from "./pages/SubscriptionManagement"
+import MyServices from "./pages/MyServices"
+import AddServices from "./pages/AddServices"
+import Locations from "./pages/Locations"
+import ManageLocations from "./pages/ManageLocations"
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requiredRole = null }) => {
@@ -194,12 +200,61 @@ function App() {
                   }
                 />
 
+                <Route
+                  path="/subscription"
+                  element={
+                    <ProtectedRoute requiredRole="service_provider">
+                      <SubscriptionManagement />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/services"
+                  element={
+                    <ProtectedRoute requiredRole="service_provider">
+                      <MyServices />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/services/add"
+                  element={
+                    <ProtectedRoute requiredRole="service_provider">
+                      <AddServices />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/locations"
+                  element={<Locations />}
+                />
+
+                <Route
+                  path="/manage-locations"
+                  element={
+                    <ProtectedRoute requiredRole="service_provider">
+                      <ManageLocations />
+                    </ProtectedRoute>
+                  }
+                />
+
                 {/* Admin Routes */}
                 <Route
                   path="/admin"
                   element={
                     <ProtectedRoute requiredRole="admin">
                       <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/posts"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminPosts />
                     </ProtectedRoute>
                   }
                 />

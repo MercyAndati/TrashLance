@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { MapPin, AlertTriangle, Upload, X } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
@@ -26,6 +26,12 @@ const CreatePost = () => {
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
   const [locationLoading, setLocationLoading] = useState(false)
+  const [locationSuggestions, setLocationSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [locationSearchLoading, setLocationSearchLoading] = useState(false)
+  const [locationSearchError, setLocationSearchError] = useState("")
+  const locationInputRef = useRef(null)
+  const locationSearchTimeout = useRef(null)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -176,13 +182,67 @@ const CreatePost = () => {
         },
       })
 
-      navigate(`/posts/${response.data.data._id}`)
+      navigate(`/posts/${response.data.data.post._id}`)
     } catch (error) {
       console.error("Failed to create post:", error)
       alert("Failed to submit report. Please try again.")
     } finally {
       setLoading(false)
     }
+  }
+
+  // Location search handler with debounce
+  const handleLocationSearch = (e) => {
+    const value = e.target.value
+    handleChange(e)
+    setLocationSearchError("")
+    if (locationSearchTimeout.current) {
+      clearTimeout(locationSearchTimeout.current)
+    }
+    if (value.length < 3) {
+      setLocationSuggestions([])
+      setShowSuggestions(false)
+      return
+    }
+    setLocationSearchLoading(true)
+    locationSearchTimeout.current = setTimeout(async () => {
+      try {
+        const response = await api.get(`/location/search?query=${encodeURIComponent(value)}`)
+        setLocationSuggestions(response.data.data)
+        setShowSuggestions(true)
+        // If only suggestion is Nairobi default, show error
+        if (
+          response.data.data.length === 1 &&
+          response.data.data[0].name === "Nairobi, Kenya (default)"
+        ) {
+          setLocationSearchError("No results found. Using Nairobi as default.")
+        }
+      } catch (error) {
+        setLocationSuggestions([])
+        setShowSuggestions(false)
+        setLocationSearchError("Location search failed. Please try again.")
+      } finally {
+        setLocationSearchLoading(false)
+      }
+    }, 400) // 400ms debounce
+  }
+
+  // When user selects a suggestion
+  const handleSuggestionSelect = (suggestion) => {
+    setFormData((prev) => ({
+      ...prev,
+      location: {
+        placeName: suggestion.name,
+        coordinates: {
+          latitude: suggestion.latitude,
+          longitude: suggestion.longitude,
+        },
+      },
+    }))
+    setLocationSuggestions([])
+    setShowSuggestions(false)
+    setLocationSearchError("")
+    if (locationInputRef.current) locationInputRef.current.blur()
   }
 
   return (
@@ -254,7 +314,7 @@ const CreatePost = () => {
 
             {/* Location */}
             <div className="space-y-4">
-              <div>
+              <div className="relative">
                 <label htmlFor="placeName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Location Name *
                 </label>
@@ -267,11 +327,42 @@ const CreatePost = () => {
                     id="placeName"
                     name="location.placeName"
                     value={formData.location.placeName}
-                    onChange={handleChange}
+                    onChange={handleLocationSearch}
+                    ref={locationInputRef}
+                    autoComplete="off"
                     className={`input-field ${errors.placeName ? "border-red-500" : ""}`}
                     placeholder="e.g., Behind Main Street Mall, Near Oak Park"
                   />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Tip: Search for a general area (e.g., city, town, or neighborhood). Add specific details in the description below.
+                  </p>
+                  {/* Suggestions dropdown */}
+                  {showSuggestions && (
+                    <ul className="absolute z-10 left-0 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg mt-1 max-h-56 overflow-y-auto shadow-lg">
+                      {locationSuggestions.length === 1 && locationSuggestions[0].name === "Nairobi, Kenya (default)" ? (
+                        <li className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 cursor-default">
+                          No results found. Using Nairobi as default.
+                        </li>
+                      ) : (
+                        locationSuggestions.map((suggestion, idx) => (
+                          <li
+                            key={idx}
+                            className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
+                            onClick={() => handleSuggestionSelect(suggestion)}
+                          >
+                            {suggestion.name}
+                          </li>
+                        ))
+                      )}
+                    </ul>
+                  )}
+                  {locationSearchLoading && (
+                    <div className="absolute right-3 top-2 text-gray-400 text-xs">Searching...</div>
+                  )}
                 </div>
+                {locationSearchError && (
+                  <p className="mt-1 text-sm text-yellow-600 dark:text-yellow-400">{locationSearchError}</p>
+                )}
                 {errors.placeName && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.placeName}</p>}
               </div>
 
@@ -366,7 +457,7 @@ const CreatePost = () => {
                     {images.map((image) => (
                       <div key={image.id} className="relative">
                         <img
-                          src={image.preview || "/placeholder.svg"}
+                          src={image.preview || "/TrashLance.png"}
                           alt="Evidence"
                           className="w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
                         />

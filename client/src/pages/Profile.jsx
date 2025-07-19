@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams } from "react-router-dom"
+import { useParams, Link } from "react-router-dom" // React Router imports
 import { Mail, Phone, MapPin, Star, Calendar, Package, Edit3, Camera, Shield, Award, Clock } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 import api from "../services/api"
@@ -21,6 +21,7 @@ const Profile = () => {
 
   useEffect(() => {
     if (isOwnProfile) {
+      console.log('Current user data:', currentUser)
       setProfile(currentUser)
       setLoading(false)
     } else {
@@ -58,6 +59,7 @@ const Profile = () => {
   const handleSaveProfile = async () => {
     try {
       const response = await api.put("/users/profile", editForm)
+      console.log('Profile update response:', response.data.data)
       updateUser(response.data.data)
       setProfile(response.data.data)
       setEditing(false)
@@ -120,7 +122,7 @@ const Profile = () => {
               <div className="relative -mt-16 mb-4 sm:mb-0">
                 <div className="relative">
                   <img
-                    src={profileUser.avatar || "/placeholder.svg"}
+                    src={profileUser.avatar || "/TrashLance.png"}
                     alt={profileUser.username}
                     className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 bg-white dark:bg-gray-800"
                   />
@@ -167,13 +169,24 @@ const Profile = () => {
                   </div>
 
                   {isOwnProfile && (
-                    <button
-                      onClick={handleEditToggle}
-                      className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
-                    >
-                      <Edit3 className="w-4 h-4 mr-2" />
-                      {editing ? "Cancel" : "Edit Profile"}
-                    </button>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={handleEditToggle}
+                        className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                      >
+                        <Edit3 className="w-4 h-4 mr-2" />
+                        {editing ? "Cancel" : "Edit Profile"}
+                      </button>
+                      {profileUser.role === "service_provider" && (
+                        <Link
+                          to="/manage-locations"
+                          className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                        >
+                          <MapPin className="w-4 h-4 mr-2" />
+                          Manage Locations
+                        </Link>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -278,14 +291,75 @@ const Profile = () => {
 
                   <div>
                     <h3 className="font-medium text-gray-900 dark:text-white">Service Radius</h3>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      {profileUser.serviceProvider.serviceRadius || 10} km
-                    </p>
+                    {editing ? (
+                      <div className="mt-2">
+                        <input
+                          type="number"
+                          min="1"
+                          max="100"
+                          value={editForm.serviceProvider?.serviceRadius || profileUser.serviceProvider.serviceRadius || 10}
+                          onChange={(e) => setEditForm({
+                            ...editForm,
+                            serviceProvider: {
+                              ...editForm.serviceProvider,
+                              serviceRadius: parseInt(e.target.value)
+                            }
+                          })}
+                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          How far are you willing to travel (in kilometers)
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-gray-600 dark:text-gray-400">
+                        {profileUser.serviceProvider.serviceRadius || 10} km
+                      </p>
+                    )}
                   </div>
+
+                  {profileUser.serviceProvider.serviceLocations && (
+                    <div>
+                      <h3 className="font-medium text-gray-900 dark:text-white">Service Locations</h3>
+                      {editing ? (
+                        <div className="mt-2">
+                          <textarea
+                            value={editForm.serviceProvider?.serviceLocations || profileUser.serviceProvider.serviceLocations || ""}
+                            onChange={(e) => setEditForm({
+                              ...editForm,
+                              serviceProvider: {
+                                ...editForm.serviceProvider,
+                                serviceLocations: e.target.value
+                              }
+                            })}
+                            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            placeholder="Enter locations separated by commas (e.g., Nairobi, Mombasa, Kisumu)"
+                            rows={3}
+                          />
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            Separate multiple locations with commas
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {profileUser.serviceProvider.serviceLocations.split(',').map((location, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200"
+                            >
+                              <MapPin className="w-3 h-3 mr-1" />
+                              {location.trim()}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {profileUser.serviceProvider.subscription && (
                     <div>
                       <h3 className="font-medium text-gray-900 dark:text-white">Subscription Plan</h3>
+                      {console.log('Profile subscription data:', profileUser.serviceProvider.subscription)}
                       <span
                         className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
                           profileUser.serviceProvider.subscription.plan === "Premium"

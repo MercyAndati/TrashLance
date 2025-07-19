@@ -208,7 +208,7 @@ const BookingDetails = () => {
                   {booking.images.map((image, index) => (
                     <img
                       key={index}
-                      src={image.url || "/placeholder.svg"}
+                      src={image.url || "/TrashLance.png"}
                       alt={`Booking image ${index + 1}`}
                       className="w-full h-32 object-cover rounded-lg"
                     />
@@ -232,7 +232,7 @@ const BookingDetails = () => {
                   <div className="space-y-4">
                     <div className="flex items-center space-x-3">
                       <img
-                        src={contactPerson?.avatar || "/placeholder.svg"}
+                        src={contactPerson?.avatar || "/TrashLance.png"}
                         alt={contactPerson?.username}
                         className="w-12 h-12 rounded-full"
                       />

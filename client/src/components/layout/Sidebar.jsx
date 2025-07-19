@@ -17,6 +17,8 @@ import {
   Users,
   BarChart3,
   Plus,
+  CreditCard,
+  MapPin,
 } from "lucide-react"
 import { useAuth } from "../../contexts/AuthContext"
 
@@ -39,6 +41,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { icon: User, label: "Profile", path: "/profile" },
     { icon: Calendar, label: "Bookings", path: "/bookings" },
     { icon: FileText, label: "Reports", path: "/posts" },
+    { icon: MapPin, label: "Locations", path: "/locations" },
     { icon: MessageCircle, label: "Messages", path: "/chat" },
     { icon: Trophy, label: "Leaderboard", path: "/leaderboard" },
     { icon: Settings, label: "Settings", path: "/settings" },
@@ -54,9 +57,12 @@ const Sidebar = ({ isOpen, onClose }) => {
       path: "/services",
       submenu: [
         { label: "My Services", path: "/services" },
-        { label: "Add Service", path: "/services/create" },
+        { label: "Add Services", path: "/services/add" },
       ],
     },
+    { icon: FileText, label: "Reports", path: "/posts" },
+    { icon: MapPin, label: "Locations", path: "/locations" },
+    { icon: CreditCard, label: "Subscription", path: "/subscription" },
     { icon: MessageCircle, label: "Messages", path: "/chat" },
     { icon: BarChart3, label: "Analytics", path: "/analytics" },
     { icon: Trophy, label: "Leaderboard", path: "/leaderboard" },
@@ -68,6 +74,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { icon: Users, label: "Users", path: "/admin/users" },
     { icon: Calendar, label: "Bookings", path: "/admin/bookings" },
     { icon: FileText, label: "Posts", path: "/admin/posts" },
+    { icon: MapPin, label: "Locations", path: "/locations" },
     { icon: Shield, label: "Moderation", path: "/admin/moderation" },
     { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
     { icon: Settings, label: "Settings", path: "/admin/settings" },
@@ -76,6 +83,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   const governmentMenuItems = [
     { icon: Home, label: "Dashboard", path: "/dashboard" },
     { icon: FileText, label: "Reports", path: "/posts" },
+    { icon: MapPin, label: "Locations", path: "/locations" },
     { icon: Plus, label: "Create Post", path: "/create-post" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ]
@@ -129,7 +137,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-3">
             {user?.avatar ? (
-              <img src={user.avatar || "/placeholder.svg"} alt={user.username} className="w-10 h-10 rounded-full" />
+              <img src={user.avatar || "/TrashLance.png"} alt={user.username} className="w-10 h-10 rounded-full" />
             ) : (
               <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
                 <User className="w-5 h-5 text-green-600 dark:text-green-400" />

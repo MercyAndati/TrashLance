@@ -28,6 +28,7 @@ const notificationSchema = new mongoose.Schema({
       'account_verified',
       'password_changed',
       'new_message',
+      'new_comment',
       'promotion',
       'reminder'
     ]

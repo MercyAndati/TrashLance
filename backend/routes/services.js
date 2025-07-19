@@ -1,28 +1,27 @@
-const express = require("express")
-const router = express.Router()
+const express = require('express');
+const router = express.Router();
 const {
-  getAllServices,
-  getServiceById,
+  getMyServices,
   createService,
   updateService,
   deleteService,
-  getServicesByProvider,
-} = require("../controllers/serviceController")
-const { authenticateToken } = require("../middleware/auth")
-const { validateService, validateObjectId } = require("../middleware/validation")
+  getServiceById,
+  getAllServices
+} = require('../controllers/serviceController');
+const { authenticateToken } = require('../middleware/auth');
+const { validateObjectId } = require('../middleware/validation');
 
-// ✅ Public routes - specific routes MUST come before parameterized routes
-router.get("/", getAllServices)
+// Protected routes
+router.use(authenticateToken);
 
-// ✅ This specific route must come BEFORE /:id to avoid conflicts
-router.get("/provider/:providerId", validateObjectId("providerId"), getServicesByProvider)
+// Service provider routes - these must come before parameterized routes
+router.get('/my-services', getMyServices);
+router.post('/', createService);
+router.put('/:id', validateObjectId('id'), updateService);
+router.delete('/:id', validateObjectId('id'), deleteService);
 
-// ✅ Parameterized routes come after specific routes
-router.get("/:id", validateObjectId("id"), getServiceById)
+// Public routes - these come after specific routes
+router.get('/', getAllServices);
+router.get('/:id', validateObjectId('id'), getServiceById);
 
-// ✅ Protected routes
-router.post("/", authenticateToken, validateService, createService)
-router.put("/:id", authenticateToken, validateObjectId("id"), validateService, updateService)
-router.delete("/:id", authenticateToken, validateObjectId("id"), deleteService)
-
-module.exports = router
+module.exports = router;

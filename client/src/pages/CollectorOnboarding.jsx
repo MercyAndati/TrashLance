@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { CheckCircle, Upload, MapPin, DollarSign, FileText } from "lucide-react"
+import { CheckCircle, Upload, MapPin, DollarSign, FileText, Star, Shield, Crown } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 import api from "../services/api"
 import LoadingSpinner from "../components/common/LoadingSpinner"
@@ -16,6 +16,7 @@ const CollectorOnboarding = () => {
     companyName: "",
     businessLicense: "",
     serviceRadius: 10,
+    serviceLocations: "",
     workingHours: {
       monday: { available: true, start: "09:00", end: "17:00" },
       tuesday: { available: true, start: "09:00", end: "17:00" },
@@ -26,8 +27,14 @@ const CollectorOnboarding = () => {
       sunday: { available: false, start: "09:00", end: "17:00" },
     },
     servicesOffered: [],
+    subscription: "freemium",
     pricing: {
-      baseRate: "",
+      type: "per_service",
+      unit: "service",
+      basePrice: "",
+      currency: "Ksh",
+      additionalFee: "",
+      additionalFeeReason: "",
       additionalServices: [],
     },
     documents: {
@@ -40,9 +47,34 @@ const CollectorOnboarding = () => {
   const steps = [
     { id: 1, title: "Business Information", icon: FileText },
     { id: 2, title: "Service Details", icon: MapPin },
-    { id: 3, title: "Pricing", icon: DollarSign },
-    { id: 4, title: "Documents", icon: Upload },
-    { id: 5, title: "Review", icon: CheckCircle },
+    { id: 3, title: "Subscription", icon: Star },
+    { id: 4, title: "Pricing", icon: DollarSign },
+    { id: 5, title: "Documents", icon: Upload },
+    { id: 6, title: "Review", icon: CheckCircle },
+  ]
+
+  const subscriptionPlans = [
+    {
+      id: "freemium",
+      name: "Freemium",
+      icon: Star,
+      description: "Basic access with limited features. Best for getting started.",
+      features: ["Limited bookings", "Basic support", "No featured listing"],
+    },
+    {
+      id: "standard",
+      name: "Standard",
+      icon: Shield,
+      description: "Access to more features and higher booking limits.",
+      features: ["More bookings", "Priority support", "Featured listing"],
+    },
+    {
+      id: "premium",
+      name: "Premium",
+      icon: Crown,
+      description: "All features unlocked, highest visibility and support.",
+      features: ["Unlimited bookings", "24/7 support", "Top featured listing"],
+    },
   ]
 
   const serviceTypes = [
@@ -96,30 +128,22 @@ const CollectorOnboarding = () => {
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      const submitData = new FormData()
+      // Send as JSON instead of FormData
+      const { documents, ...submitData } = formData; // Remove documents field entirely
 
-      // Add form data
-      Object.keys(formData).forEach((key) => {
-        if (key === "documents") {
-          Object.keys(formData.documents).forEach((docKey) => {
-            if (formData.documents[docKey]) {
-              submitData.append(docKey, formData.documents[docKey])
-            }
-          })
-        } else {
-          submitData.append(key, JSON.stringify(formData[key]))
-        }
-      })
+      // Log what's being sent
+      console.log("Form data being sent:", submitData)
 
       const response = await api.post("/users/complete-onboarding", submitData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: { "Content-Type": "application/json" },
       })
 
       updateUser(response.data.data)
       navigate("/dashboard")
     } catch (error) {
       console.error("Failed to complete onboarding:", error)
-      alert("Failed to complete onboarding. Please try again.")
+      console.error("Error response:", error.response?.data)
+      alert(`Failed to complete onboarding: ${error.response?.data?.message || error.message}`)
     } finally {
       setLoading(false)
     }
@@ -166,6 +190,19 @@ const CollectorOnboarding = () => {
           required
         />
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">How far are you willing to travel for services?</p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Service Locations *</label>
+        <input
+          type="text"
+          value={formData.serviceLocations}
+          onChange={(e) => handleInputChange("serviceLocations", e.target.value)}
+          className="input-field"
+          placeholder="e.g., Ruai, Kamulu, Stage 26"
+          required
+        />
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Enter all areas you serve, separated by commas.</p>
       </div>
 
       <div>
@@ -244,36 +281,119 @@ const CollectorOnboarding = () => {
     </div>
   )
 
+  const renderSubscription = () => (
+    <div className="space-y-6">
+      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Choose Your Subscription Plan</h3>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {subscriptionPlans.map((plan) => (
+          <div
+            key={plan.id}
+            className={`p-6 border rounded-lg shadow-sm transition-colors cursor-pointer ${
+              formData.subscription === plan.id
+                ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20"
+                : "border-gray-300 dark:border-gray-600 hover:border-blue-400"
+            }`}
+            onClick={() => handleInputChange("subscription", plan.id)}
+          >
+            <div className="flex items-center mb-2">
+              <plan.icon className="w-6 h-6 mr-2 text-blue-600" />
+              <span className="text-xl font-bold text-gray-900 dark:text-white">{plan.name}</span>
+            </div>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">{plan.description}</p>
+            <ul className="text-sm text-gray-700 dark:text-gray-300 mb-4 list-disc pl-5">
+              {plan.features.map((feature, idx) => (
+                <li key={idx}>{feature}</li>
+              ))}
+            </ul>
+            {formData.subscription === plan.id && (
+              <div className="mt-2 text-blue-600 font-semibold">Selected</div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  const pricingTypes = [
+    { value: "fixed", label: "Fixed (per service)" },
+    { value: "per_hour", label: "Per Hour" },
+    { value: "per_week", label: "Per Week" },
+    { value: "per_month", label: "Per Month" },
+    { value: "per_weight", label: "Per Weight (kg/ton)" },
+    { value: "per_volume", label: "Per Volume (m³)" },
+    { value: "custom", label: "Custom" },
+  ]
+  const pricingUnits = [
+    { value: "service", label: "Service" },
+    { value: "hour", label: "Hour" },
+    { value: "week", label: "Week" },
+    { value: "month", label: "Month" },
+    { value: "kg", label: "Kg" },
+    { value: "ton", label: "Ton" },
+    { value: "cubic_meter", label: "Cubic Meter" },
+    { value: "bag", label: "Bag" },
+    { value: "item", label: "Item" },
+  ]
+
   const renderPricing = () => (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Base Rate (per service) *
-        </label>
-        <div className="relative">
-          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={formData.pricing.baseRate}
-            onChange={(e) => handleInputChange("pricing", { ...formData.pricing, baseRate: e.target.value })}
-            className="input-field pl-8"
-            placeholder="0.00"
-            required
-          />
-        </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Your standard rate for basic services</p>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Pricing Type *</label>
+        <select
+          value={formData.pricing.type}
+          onChange={(e) => setFormData((prev) => ({ ...prev, pricing: { ...prev.pricing, type: e.target.value } }))}
+          className="input-field"
+        >
+          {pricingTypes.map((type) => (
+            <option key={type.value} value={type.value}>{type.label}</option>
+          ))}
+        </select>
       </div>
-
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-        <h4 className="font-medium text-blue-900 dark:text-blue-300 mb-2">Pricing Tips</h4>
-        <ul className="text-blue-800 dark:text-blue-400 text-sm space-y-1">
-          <li>• Research competitor pricing in your area</li>
-          <li>• Consider your costs: fuel, equipment, time, disposal fees</li>
-          <li>• You can adjust pricing later in your dashboard</li>
-          <li>• Customers can see your rates before booking</li>
-        </ul>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Unit *</label>
+        <select
+          value={formData.pricing.unit}
+          onChange={(e) => setFormData((prev) => ({ ...prev, pricing: { ...prev.pricing, unit: e.target.value } }))}
+          className="input-field"
+        >
+          {pricingUnits.map((unit) => (
+            <option key={unit.value} value={unit.value}>{unit.label}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Base Price (Ksh) *</label>
+        <input
+          type="number"
+          min="0"
+          value={formData.pricing.basePrice}
+          onChange={(e) => setFormData((prev) => ({ ...prev, pricing: { ...prev.pricing, basePrice: e.target.value } }))}
+          className="input-field"
+          placeholder="e.g., 40"
+          required
+        />
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Set your base price in Kenyan Shillings (Ksh).</p>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Additional Fee (optional)</label>
+        <input
+          type="number"
+          min="0"
+          value={formData.pricing.additionalFee}
+          onChange={(e) => setFormData((prev) => ({ ...prev, pricing: { ...prev.pricing, additionalFee: e.target.value } }))}
+          className="input-field"
+          placeholder="e.g., 100"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Reason for Additional Fee (optional)</label>
+        <input
+          type="text"
+          value={formData.pricing.additionalFeeReason}
+          onChange={(e) => setFormData((prev) => ({ ...prev, pricing: { ...prev.pricing, additionalFeeReason: e.target.value } }))}
+          className="input-field"
+          placeholder="e.g., Out of area pickup, hazardous waste, etc."
+        />
       </div>
     </div>
   )
@@ -282,12 +402,12 @@ const CollectorOnboarding = () => {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Required Documents</h3>
-        <p className="text-gray-600 dark:text-gray-400 mb-6">Upload the following documents to verify your business</p>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">Upload the following documents to verify your business (optional - you can skip and add later)</p>
 
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Business License *
+              Business License (optional)
             </label>
             <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
               <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
@@ -337,49 +457,26 @@ const CollectorOnboarding = () => {
 
   const renderReview = () => (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Review Your Information</h3>
-        <p className="text-gray-600 dark:text-gray-400 mb-6">
-          Please review all information before submitting your application
-        </p>
-
-        <div className="space-y-6">
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-            <h4 className="font-medium text-gray-900 dark:text-white mb-2">Business Information</h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-600 dark:text-gray-400">Company Name:</span>
-                <span className="ml-2 text-gray-900 dark:text-white">{formData.companyName}</span>
-              </div>
-              <div>
-                <span className="text-gray-600 dark:text-gray-400">Service Radius:</span>
-                <span className="ml-2 text-gray-900 dark:text-white">{formData.serviceRadius} km</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-            <h4 className="font-medium text-gray-900 dark:text-white mb-2">Services Offered</h4>
-            <div className="flex flex-wrap gap-2">
-              {formData.servicesOffered.map((serviceId) => {
-                const service = serviceTypes.find((s) => s.id === serviceId)
-                return (
-                  <span
-                    key={serviceId}
-                    className="px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded-full text-sm"
-                  >
-                    {service?.name}
-                  </span>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-            <h4 className="font-medium text-gray-900 dark:text-white mb-2">Pricing</h4>
-            <p className="text-gray-900 dark:text-white">Base Rate: ${formData.pricing.baseRate}</p>
-          </div>
-        </div>
+      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Review Your Information</h3>
+      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+        <p><span className="font-semibold">Business Name:</span> {formData.companyName}</p>
+        <p><span className="font-semibold">Business License:</span> {formData.businessLicense}</p>
+        <p><span className="font-semibold">Service Radius:</span> {formData.serviceRadius} km</p>
+        <p><span className="font-semibold">Service Locations:</span> {formData.serviceLocations}</p>
+        <p><span className="font-semibold">Working Hours:</span></p>
+        <ul className="ml-6 list-disc">
+          {Object.entries(formData.workingHours).map(([day, hours]) => (
+            <li key={day}>
+              {day.charAt(0).toUpperCase() + day.slice(1)}: {hours.available ? `${hours.start} - ${hours.end}` : "Not available"}
+            </li>
+          ))}
+        </ul>
+        <p><span className="font-semibold">Services Offered:</span> {formData.servicesOffered.join(", ")}</p>
+        <p><span className="font-semibold">Subscription Plan:</span> {subscriptionPlans.find(p => p.id === formData.subscription)?.name}</p>
+        <p><span className="font-semibold">Pricing:</span> {formData.pricing.basePrice} Ksh per {pricingUnits.find(u => u.value === formData.pricing.unit)?.label}</p>
+        {formData.pricing.additionalFee && (
+          <p><span className="font-semibold">Additional Fee:</span> {formData.pricing.additionalFee} Ksh ({formData.pricing.additionalFeeReason})</p>
+        )}
       </div>
     </div>
   )
@@ -429,9 +526,10 @@ const CollectorOnboarding = () => {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-8">
           {currentStep === 1 && renderBusinessInfo()}
           {currentStep === 2 && renderServiceDetails()}
-          {currentStep === 3 && renderPricing()}
-          {currentStep === 4 && renderDocuments()}
-          {currentStep === 5 && renderReview()}
+          {currentStep === 3 && renderSubscription()}
+          {currentStep === 4 && renderPricing()}
+          {currentStep === 5 && renderDocuments()}
+          {currentStep === 6 && renderReview()}
 
           {/* Navigation */}
           <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
@@ -443,8 +541,20 @@ const CollectorOnboarding = () => {
               Previous
             </button>
 
-            {currentStep < 5 ? (
-              <button onClick={() => setCurrentStep(Math.min(5, currentStep + 1))} className="btn-primary">
+            {currentStep === 5 ? (
+              <div className="flex space-x-3">
+                <button 
+                  onClick={() => setCurrentStep(6)} 
+                  className="btn-secondary"
+                >
+                  Skip Documents
+                </button>
+                <button onClick={() => setCurrentStep(6)} className="btn-primary">
+                  Next
+                </button>
+              </div>
+            ) : currentStep < 6 ? (
+              <button onClick={() => setCurrentStep(Math.min(6, currentStep + 1))} className="btn-primary">
                 Next
               </button>
             ) : (

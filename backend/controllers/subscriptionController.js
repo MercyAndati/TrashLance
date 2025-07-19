@@ -1,83 +1,128 @@
-const Subscription = require('../models/Subscription');
 const User = require('../models/User');
+const Booking = require('../models/Booking');
+const { getPlanLimit, getEffectivePlan, isSubscriptionExpired, getPlanDetails, subscriptionPlans } = require('../config/subscription');
 
-const PLANS = {
-  Free: { maxBookings: 10, visibility: 'regular', analytics: false },
-  Standard: { maxBookings: 50, visibility: 'boosted', analytics: 'basic' },
-  Premium: { maxBookings: Infinity, visibility: 'top', analytics: 'advanced' }
-};
-
-// Subscribe to a plan
-const subscribe = async (req, res) => {
+// Get current subscription status for service provider
+const getSubscriptionStatus = async (req, res) => {
   try {
-    if (req.user.role !== 'service_provider') {
-      return res.status(403).json({ success: false, message: 'Only service providers can subscribe' });
-    }
-
-    const { plan } = req.body;
-    if (!PLANS[plan]) {
-      return res.status(400).json({ success: false, message: 'Invalid subscription plan' });
-    }
-
-    const startDate = new Date();
-    const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + 30); // 30-day subscription
-
-    const existing = await Subscription.findOne({ user: req.user._id });
-    if (existing) {
-      existing.plan = plan;
-      existing.startDate = startDate;
-      existing.endDate = endDate;
-      existing.isActive = true;
-      await existing.save();
-    } else {
-      await Subscription.create({
-        user: req.user._id,
-        plan,
-        startDate,
-        endDate
+    const user = await User.findById(req.user._id);
+    
+    if (user.role !== 'service_provider') {
+      return res.status(403).json({
+        success: false,
+        message: 'This endpoint is only for service providers'
       });
     }
 
-    // Update user plan info
-    await User.findByIdAndUpdate(req.user._id, {
-      'serviceProvider.subscription': {
-        plan,
-        startDate,
-        endDate
+    const effectivePlan = getEffectivePlan(user);
+    const planDetails = getPlanDetails(effectivePlan);
+    const planLimit = getPlanLimit(effectivePlan);
+    
+    // Get current month's booking count
+    const now = new Date();
+    const monthlyBookingCount = await Booking.countDocuments({
+      serviceProvider: user._id,
+      createdAt: {
+        $gte: new Date(now.getFullYear(), now.getMonth(), 1),
+        $lt: new Date(now.getFullYear(), now.getMonth() + 1, 0)
       }
     });
 
-    res.json({ success: true, message: `Subscribed to ${plan} plan for 30 days.` });
+    const remainingBookings = planLimit - monthlyBookingCount;
+    const isExpired = user.serviceProvider?.subscription?.endDate ? 
+      isSubscriptionExpired(user.serviceProvider.subscription.endDate) : false;
+
+    res.json({
+      success: true,
+      data: {
+        currentPlan: effectivePlan,
+        originalPlan: user.serviceProvider?.subscription?.plan || 'Free',
+        planDetails,
+        usage: {
+          currentCount: monthlyBookingCount,
+          limit: planLimit,
+          remaining: remainingBookings,
+          percentage: planLimit === Infinity ? 0 : Math.round((monthlyBookingCount / planLimit) * 100)
+        },
+        subscription: {
+          isExpired,
+          startDate: user.serviceProvider?.subscription?.startDate,
+          endDate: user.serviceProvider?.subscription?.endDate,
+          isActive: !isExpired && user.serviceProvider?.subscription?.endDate
+        },
+        availablePlans: Object.keys(subscriptionPlans).map(planName => ({
+          name: planName,
+          ...subscriptionPlans[planName]
+        }))
+      }
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to subscribe', error: error.message });
+    console.error('Error getting subscription status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get subscription status',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
-// Get current plan
-const getCurrentPlan = async (req, res) => {
+// Update subscription plan (for admin or self-upgrade)
+const updateSubscription = async (req, res) => {
   try {
-    const subscription = await Subscription.findOne({ user: req.user._id });
-    if (!subscription) {
-      return res.status(404).json({ success: false, message: 'No active subscription' });
+    const { plan, months = 1 } = req.body;
+    
+    if (!['Free', 'Standard', 'Premium'].includes(plan)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid plan. Must be Free, Standard, or Premium'
+      });
     }
-    res.json({ success: true, data: subscription });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to load subscription', error: error.message });
-  }
-};
 
-// Get available plans
-const getAvailablePlans = (req, res) => {
-  const plans = Object.entries(PLANS).map(([key, value]) => ({
-    name: key,
-    ...value
-  }));
-  res.json({ success: true, data: plans });
+    const user = await User.findById(req.user._id);
+    
+    if (user.role !== 'service_provider') {
+      return res.status(403).json({
+        success: false,
+        message: 'This endpoint is only for service providers'
+      });
+    }
+
+    // Calculate new end date
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + months);
+
+    // Update subscription
+    user.serviceProvider = user.serviceProvider || {};
+    user.serviceProvider.subscription = {
+      plan,
+      startDate,
+      endDate
+    };
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: `Subscription updated to ${plan} plan`,
+      data: {
+        plan,
+        startDate,
+        endDate,
+        isActive: true
+      }
+    });
+  } catch (error) {
+    console.error('Error updating subscription:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update subscription',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
 };
 
 module.exports = {
-  subscribe,
-  getCurrentPlan,
-  getAvailablePlans
+  getSubscriptionStatus,
+  updateSubscription
 };

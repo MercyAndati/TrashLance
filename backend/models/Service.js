@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const serviceSchema = new mongoose.Schema({
+  provider: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: [true, 'Service provider is required']
+  },
   name: {
     type: String,
     required: [true, 'Service name is required'],
@@ -31,7 +36,7 @@ const serviceSchema = new mongoose.Schema({
   pricing: {
     type: {
       type: String,
-      enum: ['fixed', 'per_hour', 'per_weight', 'per_volume', 'custom'],
+      enum: ['fixed', 'per_hour', 'per_week', 'per_month', 'per_weight', 'per_volume', 'custom'],
       required: true
     },
     basePrice: {
@@ -41,8 +46,12 @@ const serviceSchema = new mongoose.Schema({
     },
     unit: {
       type: String,
-      enum: ['service', 'hour', 'kg', 'ton', 'cubic_meter', 'bag', 'item'],
+      enum: ['service', 'hour', 'week', 'month', 'kg', 'ton', 'cubic_meter', 'bag', 'item'],
       required: true
+    },
+    currency: {
+      type: String,
+      default: 'Ksh'
     },
     additionalFees: [{
       name: String,
