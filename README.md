@@ -6,8 +6,10 @@ A full-stack MERN application connecting users with reliable waste management se
 # pitch deck 
 https://www.pi.inc/docs/334525849882570?t=9e56a51a61f78a16ed7b4dee47e991b0# You're invited to collaborate on the PI document "Pitch Deck: Kenya Waste Manag..."
 
-# frontend  https://trash-lance.vercel.app/
-# backend  https://trashlance.onrender.com
+# frontend  
+- https://trash-lance.vercel.app/
+# backend  
+- https://trashlance.onrender.com
 ## Table of Contents
 
 - [Features](#features)
