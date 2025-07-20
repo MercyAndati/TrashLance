@@ -3,6 +3,8 @@
 A full-stack MERN application connecting users with reliable waste management services. Book collectors, report issues, chat, and track your environmental impact.
 
 ---
+# pitch deck 
+https://www.pi.inc/docs/334525849882570?t=9e56a51a61f78a16ed7b4dee47e991b0# You're invited to collaborate on the PI document "Pitch Deck: Kenya Waste Manag..."
 
 ## Table of Contents
 
