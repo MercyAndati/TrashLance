@@ -5,13 +5,16 @@ A comprehensive MERN stack backend for the Trashlance waste management system.
 ## Features
 
 - **User Management**: Registration, authentication, profile management
-- **Service Provider System**: Verification, service offerings, availability management
+- **Service Provider System**: Verification, service offerings, availability management, subscription plans (Freemium, Standard, Premium)
 - **Booking System**: Create, manage, track waste collection bookings
-- **Real-time Tracking**: Live location updates and communication
+- **Real-time Tracking & In-site Chat**: Live location updates and real-time messaging between users and collectors (Socket.IO)
 - **Payment Integration**: Stripe payment processing
 - **Review System**: Rating and feedback system
 - **Notification System**: Multi-channel notifications (email, SMS, in-app)
-- **Admin Dashboard**: System management and analytics
+- **Gamification**: Points for actions, leaderboard system
+- **Analytics**: Booking stats, earnings, and performance for providers/admins
+- **Admin Dashboard**: System management, analytics, user/content moderation
+- **Government/Authority Roles**: Special endpoints for oversight, reporting, and location management
 
 ## Tech Stack
 
@@ -24,7 +27,7 @@ A comprehensive MERN stack backend for the Trashlance waste management system.
 - **SMS**: Twilio
 - **Payments**: Stripe
 - **Real-time**: Socket.IO
-- **Maps**: Google Maps API
+- **Maps**: OpenStreetMap, Nominatim, OSRM
 
 ## Quick Start
 
@@ -39,7 +42,7 @@ A comprehensive MERN stack backend for the Trashlance waste management system.
 1. **Clone and install dependencies**
 ```bash
 cd backend
-npm install
+pnpm install
 ```
 
 2. **Environment Setup**
@@ -52,10 +55,10 @@ cp .env.example .env
 4. **Start the server**
 ```bash
 # Development
-npm run dev
+pnpm run dev
 
 # Production
-npm start
+pnpm start
 ```
 
 ## External Services Setup (All Free Tiers)
@@ -108,6 +111,14 @@ npm start
   TWILIO_PHONE_NUMBER=your_twilio_phone
   ```
 
+### 5. Stripe (for payments)
+- Go to [Stripe](https://dashboard.stripe.com/register)
+- Get API keys and set in `.env`:
+  ```
+  STRIPE_SECRET_KEY=your_stripe_secret
+  STRIPE_WEBHOOK_SECRET=your_webhook_secret
+  ```
+
 ### 6. Geolocation & Maps (Completely Free - No API Key Needed)
 TrashLance uses open-source, cost-free tools for location and routing:
 - 🌍 OpenStreetMap (map tiles & address formatting)
@@ -128,7 +139,7 @@ TrashLance uses open-source, cost-free tools for location and routing:
    3. Login User → Get auth token
    4. Create Service → Get service ID
    5. Create Booking → Test booking flow
-   6. Test other endpoints
+   6. Test other endpoints (chat, notifications, analytics, etc.)
    ```
 
 3. **Authentication**
@@ -160,7 +171,7 @@ TrashLance uses open-source, cost-free tools for location and routing:
 - `GET /api/bookings/:id` - Get booking details
 - `PATCH /api/bookings/:id/status` - Update booking status
 - `PATCH /api/bookings/:id/location` - Update location
-- `POST /api/bookings/:id/messages` - Add message
+- `POST /api/bookings/:id/messages` - Add message (in-site chat)
 - `PATCH /api/bookings/:id/cancel` - Cancel booking
 
 ### Reviews
@@ -178,6 +189,8 @@ TrashLance uses open-source, cost-free tools for location and routing:
 - `GET /api/users/profile` - Get user profile
 - `PUT /api/users/profile` - Update profile
 - `GET /api/users/providers` - Get service providers
+- `GET /api/users/leaderboard` - Get leaderboard (gamification)
+- `GET /api/users/analytics` - Get analytics (for providers/admins)
 
 ### Notifications
 - `GET /api/notifications` - Get notifications
@@ -188,6 +201,12 @@ TrashLance uses open-source, cost-free tools for location and routing:
 - `GET /api/admin/dashboard` - Dashboard stats
 - `GET /api/admin/users` - Get all users
 - `PATCH /api/admin/providers/:id/verify` - Verify provider
+- `GET /api/admin/analytics` - System analytics
+- `GET /api/admin/reports` - View reported issues
+
+### Government/Authority
+- `GET /api/government/reports` - View all illegal dumping reports
+- `GET /api/government/locations` - Manage service areas and coverage
 
 ## Real-time Features
 
@@ -197,12 +216,14 @@ TrashLance uses open-source, cost-free tools for location and routing:
 - `join` - Join user room for notifications
 - `location-update` - Send location update
 - `booking-status` - Update booking status
+- `chat-message` - Send chat message
 
 **Server → Client:**
 - `new-booking` - New booking notification
 - `booking-status` - Booking status update
 - `location-update` - Location update
 - `new-message` - New message notification
+- `leaderboard-update` - Gamification/leaderboard update
 
 ## Database Schema
 
@@ -212,6 +233,8 @@ TrashLance uses open-source, cost-free tools for location and routing:
 - Address with coordinates
 - Service provider specific fields
 - Verification status
+- Gamification fields (points, leaderboard rank)
+- Subscription plan
 
 ### Service Model
 - Service details and pricing
@@ -223,7 +246,7 @@ TrashLance uses open-source, cost-free tools for location and routing:
 - Customer and provider references
 - Service details and location
 - Status tracking and history
-- Communication thread
+- Communication thread (chat)
 - Payment information
 
 ### Review Model
@@ -259,7 +282,7 @@ TrashLance uses open-source, cost-free tools for location and routing:
 
 Run the test suite:
 ```bash
-npm test
+pnpm test
 ```
 
 Test with Postman:
@@ -267,45 +290,6 @@ Test with Postman:
 2. Run health check
 3. Test authentication flow
 4. Test main features
-
-## Deployment
-
-### Environment Variables for Production
-```bash
-NODE_ENV=production
-PORT=5000
-MONGODB_URI=your_production_mongodb_uri
-JWT_SECRET=your_super_secure_jwt_secret
-# ... other production configs
-```
-
-### PM2 Deployment
-```bash
-npm install -g pm2
-pm2 start server.js --name trashlance-api
-pm2 startup
-pm2 save
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create feature branch
-3. Make changes
-4. Add tests
-5. Submit pull request
-
-## Support
-
-For issues and questions:
-- Check the API documentation
-- Test with Postman collection
-- Review error logs
-- Contact development team
-
-## License
-
-MIT License - see LICENSE file for details
 
 ## payment
 virtual simulation for mvp
