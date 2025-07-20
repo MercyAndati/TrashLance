@@ -7,7 +7,7 @@ const { sendSMS } = require("../utils/sms")
 // Generate JWT token
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || "7d",
+    expiresIn: process.env.JWT_EXPIRE || "20d",
   })
 }
 
