@@ -24,6 +24,7 @@ const Chat = () => {
   const sentMessagesRef = useRef(new Set()) // Track sent messages to prevent duplicates
   const messagesContainerRef = useRef(null)
   const creatingChatRef = useRef(false) // Prevent multiple simultaneous chat creation calls
+  const [conversationsLoading, setConversationsLoading] = useState(true)
 
   // Get user parameter from URL if provided
   const targetUserId = searchParams.get("user")
@@ -142,7 +143,7 @@ const Chat = () => {
 
   const fetchConversations = async () => {
     try {
-      setLoading(true)
+      setConversationsLoading(true)
       const response = await api.get("/chats")
       const chats = response.data.data?.chats || []
       setConversations(chats)
@@ -164,7 +165,7 @@ const Chat = () => {
     } catch (error) {
       console.error("Failed to fetch conversations:", error)
     } finally {
-      setLoading(false)
+      setConversationsLoading(false)
     }
   }
 
@@ -201,6 +202,7 @@ const Chat = () => {
 
   const fetchMessages = async (conversationId) => {
     try {
+      setLoading(true)
       const response = await api.get(`/chats/${conversationId}/messages`)
       setMessages(response.data.data?.messages || [])
       
@@ -210,6 +212,8 @@ const Chat = () => {
       }
     } catch (error) {
       console.error("Failed to fetch messages:", error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -353,7 +357,12 @@ const Chat = () => {
 
         {/* Conversations */}
         <div className="flex-1 overflow-y-auto">
-          {conversations.length === 0 ? (
+          {conversationsLoading ? (
+            <div className="p-8 text-center">
+              <LoadingSpinner size="md" />
+              <p className="text-gray-500 dark:text-gray-400 mt-4">Loading conversations...</p>
+            </div>
+          ) : conversations.length === 0 ? (
             <div className="p-8 text-center">
               <p className="text-gray-500 dark:text-gray-400">No conversations yet</p>
               {targetUserId && (
@@ -440,7 +449,12 @@ const Chat = () => {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900 min-h-0" ref={messagesContainerRef}>
-              {messages.map((message, index) => (
+              {loading ? (
+                <div className="p-8 text-center">
+                  <LoadingSpinner size="md" />
+                  <p className="text-gray-500 dark:text-gray-400 mt-4">Loading messages...</p>
+                </div>
+              ) : messages.map((message, index) => (
                 <div
                   key={`${message._id}-${message.sender._id}-${index}`}
                   className={`flex ${message.sender._id === user._id ? "justify-end" : "justify-start"}`}
