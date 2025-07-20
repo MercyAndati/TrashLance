@@ -30,7 +30,15 @@ const Chat = () => {
 
   // Initialize Socket.IO connection
   useEffect(() => {
-    const newSocket = io("http://localhost:5000")
+    const newSocket = io(
+      import.meta.env.PROD
+        ? "https://trashlance.onrender.com"
+        : "http://localhost:5000",
+      {
+        transports: ["websocket", "polling"],
+        withCredentials: true,
+      }
+    )
     setSocket(newSocket)
 
     // Join user's room for notifications
@@ -59,13 +67,13 @@ const Chat = () => {
 
     // Listen for new messages
     socket.on("new-message", (data) => {
-      // Only process if this is for the active conversation and not from current user
-      if (data.chatId === activeConversation?._id && data.senderId !== user._id) {
-        // Check if we already have this message to prevent duplicates
+      // Always update the conversation list
+      debouncedFetchConversations()
+      // If the message is for the current chat, add it to messages
+      if (data.chatId === activeConversation?._id) {
         setMessages(prev => {
           const messageExists = prev.some(msg => msg._id === data.message._id)
           if (!messageExists) {
-            // Mark as read since it's from another user (with delay to avoid UI jumps)
             setTimeout(() => {
               markMessagesAsRead(data.chatId, [data.message._id])
             }, 1000)
@@ -74,18 +82,12 @@ const Chat = () => {
           return prev
         })
       }
-      // Update conversations list only if not currently in a chat
-      if (!activeConversation) {
-        debouncedFetchConversations()
-      }
     })
 
     // Listen for new chat notifications
     socket.on("new-chat", (data) => {
-      // Only update conversations if we're not currently in a chat
-      if (!activeConversation) {
-        debouncedFetchConversations()
-      }
+      // Always update the conversation list
+      debouncedFetchConversations()
     })
 
     // Listen for message deletion
