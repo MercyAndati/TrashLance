@@ -581,6 +581,23 @@ const getUserServices = async (req, res) => {
   }
 };
 
+// Delete own account and related data
+const deleteOwnAccount = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    // Delete related data (optional, but recommended)
+    await Promise.all([
+      Booking.deleteMany({ $or: [{ customer: userId }, { serviceProvider: userId }] }),
+      Service.deleteMany({ provider: userId }),
+      Notification.deleteMany({ user: userId }),
+      User.findByIdAndDelete(userId)
+    ]);
+    res.json({ success: true, message: "Account and related data deleted successfully." });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to delete account.", error: process.env.NODE_ENV === 'development' ? error.message : undefined });
+  }
+};
+
 module.exports = {
   getUserById,
   updateUserProfile,
@@ -593,4 +610,5 @@ module.exports = {
   getLocations,
   getCollectorsByLocation,
   getUserServices,
+  deleteOwnAccount,
 };
