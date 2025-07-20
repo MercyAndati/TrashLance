@@ -56,6 +56,9 @@ const limiter = rateLimit({
 })
 app.use("/api/", limiter)
 
+//limit warning
+app.set('trust proxy', 1);
+
 // CORS configuration
 app.use(cors({
   origin: process.env.CLIENT_URL,
