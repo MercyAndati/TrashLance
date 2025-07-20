@@ -201,7 +201,9 @@ const Bookings = () => {
                       <div className="flex items-center space-x-2">
                         <MapPin className="w-4 h-4 text-gray-400" />
                         <span className="text-sm text-gray-600 dark:text-gray-400">
-                          {booking.location?.address?.city || "Location"}
+                          {booking.location
+                            ? Object.values(booking.location).join(', ')
+                            : "Location"}
                         </span>
                       </div>
 
