@@ -483,14 +483,22 @@ const BookingDetails = () => {
                     {user.role === "service_provider" && booking.location && (
                       <div className="mt-4">
                         <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Client Location</h3>
-                        {booking.location.residence && (
-                          <p className="text-gray-700 dark:text-gray-300 text-sm">Residence: {booking.location.residence}</p>
-                        )}
-                        {booking.location.address && (
-                          <p className="text-gray-700 dark:text-gray-300 text-sm">Address: {booking.location.address}</p>
-                        )}
+                        {Object.entries(booking.location).map(([key, value]) => (
+                          <p key={key} className="text-gray-700 dark:text-gray-300 text-sm">
+                            {key.charAt(0).toUpperCase() + key.slice(1)}: {String(value)}
+                          </p>
+                        ))}
                       </div>
                     )}
+
+                    {/* Send Message Button */}
+                    <button
+                      className="w-full btn-primary flex items-center justify-center mt-4"
+                      onClick={() => navigate(`/chat?user=${contactPerson._id}`)}
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Send Message
+                    </button>
                   </div>
                 )
               })()}
