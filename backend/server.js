@@ -36,8 +36,12 @@ const server = createServer(app)
 // Socket.IO setup
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: [
+      'https://trash-lance.vercel.app',
+      'http://localhost:5173'
+    ],
     methods: ["GET", "POST"],
+    credentials: true
   },
 })
 
@@ -61,7 +65,10 @@ app.set('trust proxy', 1);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.CLIENT_URL,
+  origin: [
+    'https://trash-lance.vercel.app',
+    'http://localhost:5173'
+  ],
   credentials: true
 }));
 

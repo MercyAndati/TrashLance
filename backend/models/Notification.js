@@ -12,7 +12,24 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ["message", "system", "status_update"],
+    enum: [
+      "message",
+      "system",
+      "status_update",
+      "booking_confirmed",
+      "booking_status",
+      "new_chat",
+      "chat_message",
+      "booking_cancelled",
+      "booking_rescheduled",
+      "payment_received",
+      "payment_failed",
+      "promotion",
+      "reminder",
+      "account_verified",
+      "new_report",
+      // add any other types you use in your codebase
+    ],
     required: true
   },
   title: {
