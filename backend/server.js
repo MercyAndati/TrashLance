@@ -9,7 +9,7 @@ const { createServer } = require("http")
 const { Server } = require("socket.io")
 require("dotenv").config()
 
-// Import routes - TEMPORARILY DISABLE NEW ROUTES
+// Import routes 
 const authRoutes = require("./routes/auth")
 const userRoutes = require("./routes/users")
 const serviceRoutes = require("./routes/services")
@@ -18,8 +18,8 @@ const adminRoutes = require("./routes/admin")
 const notificationRoutes = require("./routes/notifications")
 const subscriptionRoutes = require("./routes/subscriptions")
 const postRoutes = require("./routes/posts")
-const pickupZoneRoutes = require("./routes/pickupZones") // TEMPORARILY DISABLED
-const chatRoutes = require("./routes/chats") // TEMPORARILY DISABLED
+const pickupZoneRoutes = require("./routes/pickupZones")
+const chatRoutes = require("./routes/chats")
 const locationRoutes = require("./routes/location")
 
 // ✅ Verify email configuration at startup
@@ -51,7 +51,7 @@ app.use(compression())
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10000, // limit each IP to 100 requests per windowMs
+  max: 200, // limit each IP to 200 requests per windowMs
   message: "Too many requests from this IP, please try again later.",
 })
 app.use("/api/", limiter)
@@ -71,7 +71,7 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"))
 }
 
-// Database connection - FIXED: Removed deprecated options
+// Database connection
 mongoose
   .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/trashlance")
   .then(() => console.log("MongoDB connected successfully"))
