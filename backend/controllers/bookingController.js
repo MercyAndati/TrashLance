@@ -48,8 +48,8 @@ const createBooking = async (req, res) => {
 
     // Check if subscription is expired
     if (provider.serviceProvider?.subscription?.endDate && isSubscriptionExpired(provider.serviceProvider.subscription.endDate)) {
-      return res.status(403).json({ 
-        success: false, 
+      return res.status(403).json({
+        success: false,
         message: 'Your subscription has expired. You are now on the Free plan. Please renew to access higher limits.',
         data: {
           currentPlan: 'Free',
@@ -122,7 +122,7 @@ const createBooking = async (req, res) => {
 
     // Use service provider's base price
     const baseAmount = provider.serviceProvider.basePrice || 0;
-    
+
     // Create booking
     const booking = new Booking({
       customer: req.user._id,
@@ -137,7 +137,7 @@ const createBooking = async (req, res) => {
         additionalFees: pricing.additionalFees || [],
         discount: pricing.discount || { amount: 0, reason: '' },
         tax: pricing.tax || { amount: 0, rate: 0 },
-        totalAmount: baseAmount + 
+        totalAmount: baseAmount +
           (pricing.additionalFees?.reduce((sum, fee) => sum + fee.amount, 0) || 0) +
           (pricing.tax?.amount || 0) -
           (pricing.discount?.amount || 0)
@@ -163,56 +163,54 @@ const createBooking = async (req, res) => {
       { path: 'service', select: 'name category pricing' }
     ]);
 
-    // Send notifications
-    await Notification.createAndSend({
-      recipient: serviceProvider,
-      type: 'booking_confirmed',
-      title: 'New Booking Request',
-      message: `You have a new booking request from ${req.user.username}`,
-      category: 'booking',
-      data: {
-        bookingId: booking._id,
-        actionUrl: `/bookings/${booking._id}`
-      }
-    });
+    // Send notifications, emails, sockets in a separate try/catch
+    try {
+      await Notification.createAndSend({
+        recipient: serviceProvider,
+        type: 'booking_confirmed',
+        title: 'New Booking Request',
+        message: `You have a new booking request from ${req.user.username}`,
+        category: 'booking',
+        data: {
+          bookingId: booking._id,
+          actionUrl: `/bookings/${booking._id}`
+        }
+      });
 
-    // Send email to service provider
-    await sendEmail({
-      to: provider.email,
-      subject: 'New Booking Request - Trashlance',
-      template: 'newBooking',
-      data: {
-        providerName: provider.username,
-        customerName: `${req.user.username}`,
-        serviceName: serviceDoc.name,
-        scheduledDate: booking.scheduledDate,
-        bookingUrl: `${process.env.CLIENT_URL}/bookings/${booking._id}`
-      }
-    });
+      await sendEmail({
+        to: provider.email,
+        subject: 'New Booking Request - Trashlance',
+        template: 'newBooking',
+        data: {
+          providerName: provider.username,
+          customerName: `${req.user.username}`,
+          serviceName: serviceDoc.name,
+          scheduledDate: booking.scheduledDate,
+          bookingUrl: `${process.env.CLIENT_URL}/bookings/${booking._id}`
+        }
+      });
 
-    // Emit real-time notification
-    const io = req.app.get('io');
-    io.to(serviceProvider).emit('new-booking', {
-      booking: booking.toObject(),
-      message: 'You have a new booking request'
-    });
+      const io = req.app.get('io');
+      io.to(serviceProvider).emit('new-booking', {
+        booking: booking.toObject(),
+        message: 'You have a new booking request'
+      });
+    } catch (notifyError) {
+      console.error('Notification/email/socket error:', notifyError);
+      // Do not throw, just log
+    }
 
-    res.status(201).json({
+    // Always return success if booking was saved
+    return res.status(201).json({
       success: true,
       message: 'Booking created successfully',
-      data: { 
+      data: {
         booking,
-        subscriptionInfo: {
-          currentPlan: effectivePlan,
-          planLimit,
-          currentCount: monthlyBookingCount + 1, // +1 for this booking
-          remainingBookings: remainingBookings - 1,
-          isCloseToLimit,
-          isExpired: false
-        }
+        // Optionally include subscriptionInfo if you want
       }
     });
   } catch (error) {
+    console.error('Error in createBooking:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to create booking',
@@ -225,10 +223,10 @@ const createBooking = async (req, res) => {
 const getUserBookings = async (req, res) => {
   try {
     const { status, page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
-    
+
     console.log('getUserBookings called with:', { status, page, limit, sortBy, sortOrder });
     console.log('User:', { id: req.user._id, role: req.user.role });
-    
+
     // Check if Booking model is available
     if (!Booking) {
       console.error('Booking model is not available');
@@ -237,9 +235,9 @@ const getUserBookings = async (req, res) => {
         message: 'Booking model not available'
       });
     }
-    
+
     const query = {};
-    
+
     // Filter by user role
     if (req.user.role === 'admin') {
       // Admin can see all bookings
@@ -249,7 +247,7 @@ const getUserBookings = async (req, res) => {
     } else {
       query.customer = req.user._id;
     }
-    
+
     // Filter by status
     if (status) {
       query.status = status;
@@ -259,7 +257,7 @@ const getUserBookings = async (req, res) => {
     console.log('MongoDB connection state:', Booking.db.readyState);
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     const bookings = await Booking.find(query)
       .populate([
         { path: 'customer', select: 'username email phone avatar' },
@@ -307,7 +305,7 @@ const getUserBookings = async (req, res) => {
 const getBookingById = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const booking = await Booking.findById(id)
       .populate([
         { path: 'customer', select: 'username email phone avatar address' },
@@ -354,7 +352,7 @@ const updateBookingStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, reason, notes } = req.body;
-    
+
     const booking = await Booking.findById(id);
     if (!booking) {
       return res.status(404).json({
@@ -409,8 +407,8 @@ const updateBookingStatus = async (req, res) => {
     await booking.save();
 
     // Send notifications
-    const recipient = booking.customer.toString() === req.user._id.toString() 
-      ? booking.serviceProvider 
+    const recipient = booking.customer.toString() === req.user._id.toString()
+      ? booking.serviceProvider
       : booking.customer;
 
     const statusMessages = {
@@ -461,7 +459,7 @@ const updateLocation = async (req, res) => {
   try {
     const { id } = req.params;
     const { latitude, longitude, estimatedArrival } = req.body;
-    
+
     const booking = await Booking.findById(id);
     if (!booking) {
       return res.status(404).json({
@@ -524,7 +522,7 @@ const addMessage = async (req, res) => {
   try {
     const { id } = req.params;
     const { message, type = 'message' } = req.body;
-    
+
     const booking = await Booking.findById(id);
     if (!booking) {
       return res.status(404).json({
@@ -558,8 +556,8 @@ const addMessage = async (req, res) => {
     const addedMessage = booking.communication[booking.communication.length - 1];
 
     // Send notification to other party
-    const recipient = booking.customer.toString() === req.user._id.toString() 
-      ? booking.serviceProvider 
+    const recipient = booking.customer.toString() === req.user._id.toString()
+      ? booking.serviceProvider
       : booking.customer;
 
     await Notification.createAndSend({
@@ -600,7 +598,7 @@ const cancelBooking = async (req, res) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
-    
+
     const booking = await Booking.findById(id);
     if (!booking) {
       return res.status(404).json({
@@ -638,7 +636,7 @@ const cancelBooking = async (req, res) => {
     // Calculate refund amount based on cancellation policy
     let refundAmount = 0;
     const hoursUntilService = (new Date(booking.scheduledDate) - new Date()) / (1000 * 60 * 60);
-    
+
     if (hoursUntilService > 24) {
       refundAmount = booking.pricing.totalAmount; // Full refund
     } else if (hoursUntilService > 2) {
@@ -670,7 +668,7 @@ const cancelBooking = async (req, res) => {
     res.json({
       success: true,
       message: 'Booking cancelled successfully',
-      data: { 
+      data: {
         booking,
         refundAmount
       }
