@@ -479,21 +479,18 @@ const BookingDetails = () => {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Phone className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm text-gray-600 dark:text-gray-400">{contactPerson?.phone}</span>
+                    {/* Show client location for collector */}
+                    {user.role === "service_provider" && booking.location && (
+                      <div className="mt-4">
+                        <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Client Location</h3>
+                        {booking.location.residence && (
+                          <p className="text-gray-700 dark:text-gray-300 text-sm">Residence: {booking.location.residence}</p>
+                        )}
+                        {booking.location.address && (
+                          <p className="text-gray-700 dark:text-gray-300 text-sm">Address: {booking.location.address}</p>
+                        )}
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Mail className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm text-gray-600 dark:text-gray-400">{contactPerson?.email}</span>
-                      </div>
-                    </div>
-
-                    <button className="w-full btn-primary">
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      Send Message
-                    </button>
+                    )}
                   </div>
                 )
               })()}
