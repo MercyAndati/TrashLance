@@ -6,9 +6,10 @@ import { useAuth } from "../contexts/AuthContext"
 import { useTheme } from "../contexts/ThemeContext"
 import api from "../services/api"
 import LoadingSpinner from "../components/common/LoadingSpinner"
+import { useNavigate } from "react-router-dom"
 
 const Settings = () => {
-  const { user, updateUser } = useAuth()
+  const { user, updateUser, logout } = useAuth()
   const { isDark, toggleTheme } = useTheme()
   const [activeTab, setActiveTab] = useState("profile")
   const [loading, setLoading] = useState(false)
@@ -30,6 +31,7 @@ const Settings = () => {
     messageNotifications: true,
     marketingEmails: false,
   })
+  const navigate = useNavigate();
 
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
@@ -71,6 +73,21 @@ const Settings = () => {
       console.error("Failed to update notifications:", error)
     }
   }
+
+  // Add delete account handler
+  const handleDeleteAccount = async () => {
+    if (!window.confirm("Are you sure you want to permanently delete your account? This action cannot be undone.")) return;
+    setLoading(true);
+    try {
+      await api.delete("/users/profile");
+      logout();
+      navigate("/");
+    } catch (error) {
+      alert(error.response?.data?.message || "Failed to delete account.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const renderProfileSettings = () => (
     <div className="space-y-6">
@@ -399,9 +416,14 @@ const Settings = () => {
             <p className="text-sm text-gray-600 dark:text-gray-400">Get a copy of your account data</p>
           </button>
 
-          <button className="w-full text-left p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
+          <button
+            className="w-full text-left p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+            onClick={handleDeleteAccount}
+            disabled={loading}
+          >
             <p className="font-medium text-red-900 dark:text-red-300">Delete Account</p>
             <p className="text-sm text-red-600 dark:text-red-400">Permanently delete your account and data</p>
+            {loading && <LoadingSpinner size="sm" />}
           </button>
         </div>
       </div>
