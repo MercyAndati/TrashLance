@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import { MapPin, Users, Star, Phone, Mail, Calendar, Package } from 'lucide-react';
+import { useMediaQuery } from 'react-responsive';
 
 const Locations = () => {
   const { user } = useAuth();
@@ -11,6 +12,7 @@ const Locations = () => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [collectors, setCollectors] = useState([]);
   const [collectorsLoading, setCollectorsLoading] = useState(false);
+  const isMobile = useMediaQuery({ maxWidth: 1023 }); // lg breakpoint
 
   useEffect(() => {
     fetchLocations();
@@ -34,7 +36,7 @@ const Locations = () => {
       setSelectedLocation(location);
       const response = await api.get(`/users/locations/${encodeURIComponent(location)}/collectors`);
       setCollectors(response.data.data);
-      console.log('Collectors:', response.data.data); // <-- Add this log
+      console.log('Collectors:', response.data.data);
     } catch (error) {
       console.error('Error fetching collectors:', error);
     } finally {
@@ -93,28 +95,109 @@ const Locations = () => {
                 const isSelected = selectedLocation === location;
                 const showCollectors = isSelected && collectors.length > 0;
                 return (
-                  <div
-                    key={location}
-                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                      isSelected
-                        ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-600'
-                    }`}
-                    onClick={() => fetchCollectorsByLocation(location)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <MapPin className="w-5 h-5 text-green-600" />
-                        <div>
-                          <h3 className="font-medium text-gray-900 dark:text-white">{location}</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {showCollectors
-                              ? `${collectors.length} collector${collectors.length !== 1 ? 's' : ''} available`
-                              : 'Click to view collectors'}
-                          </p>
+                  <div key={location}>
+                    <div
+                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        isSelected
+                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-600'
+                      }`}
+                      onClick={() => fetchCollectorsByLocation(location)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <MapPin className="w-5 h-5 text-green-600" />
+                          <div>
+                            <h3 className="font-medium text-gray-900 dark:text-white">{location}</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {showCollectors
+                                ? `${collectors.length} collector${collectors.length !== 1 ? 's' : ''} available`
+                                : 'Click to view collectors'}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
+                    {/* Inline collectors for mobile */}
+                    {isMobile && isSelected && (
+                      <div className="mt-3">
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                          Collectors in {selectedLocation}
+                        </h2>
+                        {collectorsLoading ? (
+                          <div className="text-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
+                            <p className="mt-2 text-gray-600 dark:text-gray-400">Loading collectors...</p>
+                          </div>
+                        ) : collectors.length === 0 ? (
+                          <div className="text-center py-8">
+                            <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                            <p className="text-gray-500 dark:text-gray-400">No collectors available in this location</p>
+                          </div>
+                        ) : (
+                          <div className="grid gap-4 md:grid-cols-2">
+                            {collectors.map((collector) => (
+                              <div
+                                key={collector._id}
+                                className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6"
+                              >
+                                <div className="flex items-start space-x-4">
+                                  <div className="flex-shrink-0">
+                                    {collector.avatar ? (
+                                      <img
+                                        src={collector.avatar}
+                                        alt={collector.username}
+                                        className="w-12 h-12 rounded-full"
+                                      />
+                                    ) : (
+                                      <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                                        <span className="text-green-600 dark:text-green-400 font-semibold">
+                                          {collector.username.charAt(0).toUpperCase()}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                        {collector.serviceProvider?.companyName || collector.username}
+                                      </h3>
+                                      <div className="flex items-center space-x-1">
+                                        <Star className="w-4 h-4 text-yellow-500" />
+                                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                          {collector.serviceProvider?.rating?.average?.toFixed(1) || 'New'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                      {collector.serviceProvider?.serviceLocations}
+                                    </p>
+                                    <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                      <div className="flex items-center space-x-1">
+                                        <Package className="w-4 h-4" />
+                                        <span>{collector.serviceProvider?.servicesOffered?.length || 0} services</span>
+                                      </div>
+                                      <div className="flex items-center space-x-1">
+                                        <Calendar className="w-4 h-4" />
+                                        <span>{collector.serviceProvider?.serviceRadius || 10}km radius</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <Link
+                                        to={`/profile/${collector._id}`}
+                                        className="btn-secondary text-sm"
+                                      >
+                                        View Profile
+                                      </Link>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -122,101 +205,90 @@ const Locations = () => {
           </div>
         </div>
 
-        {/* Collectors List */}
-        <div className="lg:col-span-2">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            {selectedLocation ? `Collectors in ${selectedLocation}` : 'Select a location to view collectors'}
-          </h2>
-          
-          {selectedLocation && (
-            <div>
-              {collectorsLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
-                  <p className="mt-2 text-gray-600 dark:text-gray-400">Loading collectors...</p>
-                </div>
-              ) : collectors.length === 0 ? (
-                <div className="text-center py-8">
-                  <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 dark:text-gray-400">No collectors available in this location</p>
-                </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {collectors.map((collector) => (
-                    <div
-                      key={collector._id}
-                      className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6"
-                    >
-                      <div className="flex items-start space-x-4">
-                        <div className="flex-shrink-0">
-                          {collector.avatar ? (
-                            <img
-                              src={collector.avatar}
-                              alt={collector.username}
-                              className="w-12 h-12 rounded-full"
-                            />
-                          ) : (
-                            <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-                              <span className="text-green-600 dark:text-green-400 font-semibold">
-                                {collector.username.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                              {collector.serviceProvider?.companyName || collector.username}
-                            </h3>
-                            <div className="flex items-center space-x-1">
-                              <Star className="w-4 h-4 text-yellow-500" />
-                              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                {collector.serviceProvider?.rating?.average?.toFixed(1) || 'New'}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                            {collector.serviceProvider?.serviceLocations}
-                          </p>
-                          
-                          <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400 mb-4">
-                            <div className="flex items-center space-x-1">
-                              <Package className="w-4 h-4" />
-                              <span>{collector.serviceProvider?.servicesOffered?.length || 0} services</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Calendar className="w-4 h-4" />
-                              <span>{collector.serviceProvider?.serviceRadius || 10}km radius</span>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center space-x-2">
-                            <Link
-                              to={`/profile/${collector._id}`}
-                              className="btn-secondary text-sm"
-                            >
-                              View Profile
-                            </Link>
-                            {user?.role === 'customer' && (
-                              <Link
-                                to={`/bookings/create?provider=${collector._id}`}
-                                className="btn-primary text-sm"
-                              >
-                                Book Service
-                              </Link>
+        {/* Collectors List for large screens */}
+        {!isMobile && (
+          <div className="lg:col-span-2">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              {selectedLocation ? `Collectors in ${selectedLocation}` : 'Select a location to view collectors'}
+            </h2>
+            {selectedLocation && (
+              <div>
+                {collectorsLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
+                    <p className="mt-2 text-gray-600 dark:text-gray-400">Loading collectors...</p>
+                  </div>
+                ) : collectors.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500 dark:text-gray-400">No collectors available in this location</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {collectors.map((collector) => (
+                      <div
+                        key={collector._id}
+                        className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6"
+                      >
+                        <div className="flex items-start space-x-4">
+                          <div className="flex-shrink-0">
+                            {collector.avatar ? (
+                              <img
+                                src={collector.avatar}
+                                alt={collector.username}
+                                className="w-12 h-12 rounded-full"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                                <span className="text-green-600 dark:text-green-400 font-semibold">
+                                  {collector.username.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
                             )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                {collector.serviceProvider?.companyName || collector.username}
+                              </h3>
+                              <div className="flex items-center space-x-1">
+                                <Star className="w-4 h-4 text-yellow-500" />
+                                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                  {collector.serviceProvider?.rating?.average?.toFixed(1) || 'New'}
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                              {collector.serviceProvider?.serviceLocations}
+                            </p>
+                            <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400 mb-4">
+                              <div className="flex items-center space-x-1">
+                                <Package className="w-4 h-4" />
+                                <span>{collector.serviceProvider?.servicesOffered?.length || 0} services</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <Calendar className="w-4 h-4" />
+                                <span>{collector.serviceProvider?.serviceRadius || 10}km radius</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Link
+                                to={`/profile/${collector._id}`}
+                                className="btn-secondary text-sm"
+                              >
+                                View Profile
+                              </Link>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -156,7 +156,7 @@ const MyServices = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-500 dark:text-gray-400">Price:</span>
                   <span className="font-medium text-gray-900 dark:text-white">
-                    {service.pricing.currency} {service.pricing.basePrice} per {service.pricing.unit}
+                    KSh {service.pricing.basePrice} per {service.pricing.unit}
                   </span>
                 </div>
                 
@@ -189,7 +189,7 @@ const MyServices = () => {
                       <div key={index} className="flex justify-between text-sm">
                         <span className="text-gray-600 dark:text-gray-400">{fee.name}:</span>
                         <span className="text-gray-900 dark:text-white">
-                          {service.pricing.currency} {fee.amount}
+                          KSh {fee.amount}
                         </span>
                       </div>
                     ))}

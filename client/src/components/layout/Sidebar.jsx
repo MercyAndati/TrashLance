@@ -78,6 +78,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { icon: Shield, label: "Moderation", path: "/admin/moderation" },
     { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
     { icon: Settings, label: "Settings", path: "/admin/settings" },
+    { icon: Shield, label: "Create Government Account", path: "/admin/create-government" },
   ]
 
   const governmentMenuItems = [
@@ -106,12 +107,12 @@ const Sidebar = ({ isOpen, onClose }) => {
   return (
     <>
       {/* Mobile overlay */}
-      {isOpen && <div className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" onClick={onClose} />}
+      {/*isOpen && <div className="fixed inset-0 bg-black bg-opacity-10 z-40 lg:hidden" onClick={onClose} />*/}
 
       {/* Sidebar */}
       <div
         className={`
-      fixed top-0 left-0 h-full w-64 bg-white dark:bg-gray-800 shadow-lg transform transition-transform duration-300 z-50
+      fixed top-0 left-0 h-full w-48 bg-white dark:bg-gray-800 shadow-lg transform transition-transform duration-300 z-50
       ${isOpen ? "translate-x-0" : "-translate-x-full"}
       lg:translate-x-0 lg:static lg:z-auto
       border-r border-gray-200 dark:border-gray-700

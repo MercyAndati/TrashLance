@@ -19,7 +19,7 @@ const subscriptionPlans = {
       "Advanced analytics",
       "Custom branding"
     ],
-    price: 5000,
+    price: 500,
     currency: "Ksh"
   },
   Premium: {
@@ -33,7 +33,7 @@ const subscriptionPlans = {
       "API access",
       "Dedicated account manager"
     ],
-    price: 15000,
+    price: 1000,
     currency: "Ksh"
   }
 };

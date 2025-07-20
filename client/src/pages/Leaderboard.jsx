@@ -133,7 +133,7 @@ const Leaderboard = () => {
                   {category === "points" && `${userRank.points} points`}
                   {category === "reports" && `${userRank.reports} reports`}
                   {category === "bookings" && `${userRank.bookings} bookings`}
-                  {category === "earnings" && `$${userRank.earnings}`}
+                  {category === "earnings" && `KSh ${userRank.earnings}`}
                 </p>
               </div>
             )}
@@ -164,7 +164,7 @@ const Leaderboard = () => {
                   {category === "points" && `${leaderboard[1]?.points || 0} pts`}
                   {category === "reports" && `${leaderboard[1]?.reports || 0}`}
                   {category === "bookings" && `${leaderboard[1]?.bookings || 0}`}
-                  {category === "earnings" && `$${leaderboard[1]?.earnings || 0}`}
+                  {category === "earnings" && `KSh ${leaderboard[1]?.earnings || 0}`}
                 </div>
               </div>
             </div>
@@ -188,7 +188,7 @@ const Leaderboard = () => {
                   {category === "points" && `${leaderboard[0]?.points || 0} pts`}
                   {category === "reports" && `${leaderboard[0]?.reports || 0}`}
                   {category === "bookings" && `${leaderboard[0]?.bookings || 0}`}
-                  {category === "earnings" && `$${leaderboard[0]?.earnings || 0}`}
+                  {category === "earnings" && `KSh ${leaderboard[0]?.earnings || 0}`}
                 </div>
               </div>
             </div>
@@ -214,7 +214,7 @@ const Leaderboard = () => {
                   {category === "points" && `${leaderboard[2]?.points || 0} pts`}
                   {category === "reports" && `${leaderboard[2]?.reports || 0}`}
                   {category === "bookings" && `${leaderboard[2]?.bookings || 0}`}
-                  {category === "earnings" && `$${leaderboard[2]?.earnings || 0}`}
+                  {category === "earnings" && `KSh ${leaderboard[2]?.earnings || 0}`}
                 </div>
               </div>
             </div>
@@ -269,7 +269,7 @@ const Leaderboard = () => {
                       {category === "points" && `${member.points || 0} pts`}
                       {category === "reports" && `${member.reports || 0}`}
                       {category === "bookings" && `${member.bookings || 0}`}
-                      {category === "earnings" && `$${member.earnings || 0}`}
+                      {category === "earnings" && `KSh ${member.earnings || 0}`}
                     </div>
                     {member.rating && (
                       <div className="flex items-center space-x-1 mt-1">

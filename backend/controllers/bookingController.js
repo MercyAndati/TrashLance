@@ -120,6 +120,9 @@ const createBooking = async (req, res) => {
       });
     }
 
+    // Use service provider's base price
+    const baseAmount = provider.serviceProvider.basePrice || 0;
+    
     // Create booking
     const booking = new Booking({
       customer: req.user._id,
@@ -130,8 +133,11 @@ const createBooking = async (req, res) => {
       location,
       serviceDetails,
       pricing: {
-        ...pricing,
-        totalAmount: pricing.baseAmount + 
+        baseAmount: baseAmount,
+        additionalFees: pricing.additionalFees || [],
+        discount: pricing.discount || { amount: 0, reason: '' },
+        tax: pricing.tax || { amount: 0, rate: 0 },
+        totalAmount: baseAmount + 
           (pricing.additionalFees?.reduce((sum, fee) => sum + fee.amount, 0) || 0) +
           (pricing.tax?.amount || 0) -
           (pricing.discount?.amount || 0)
@@ -220,10 +226,25 @@ const getUserBookings = async (req, res) => {
   try {
     const { status, page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
     
+    console.log('getUserBookings called with:', { status, page, limit, sortBy, sortOrder });
+    console.log('User:', { id: req.user._id, role: req.user.role });
+    
+    // Check if Booking model is available
+    if (!Booking) {
+      console.error('Booking model is not available');
+      return res.status(500).json({
+        success: false,
+        message: 'Booking model not available'
+      });
+    }
+    
     const query = {};
     
     // Filter by user role
-    if (req.user.role === 'service_provider') {
+    if (req.user.role === 'admin') {
+      // Admin can see all bookings
+      // No additional query filters needed
+    } else if (req.user.role === 'service_provider') {
       query.serviceProvider = req.user._id;
     } else {
       query.customer = req.user._id;
@@ -233,6 +254,9 @@ const getUserBookings = async (req, res) => {
     if (status) {
       query.status = status;
     }
+
+    console.log('Query:', query);
+    console.log('MongoDB connection state:', Booking.db.readyState);
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     
@@ -246,7 +270,18 @@ const getUserBookings = async (req, res) => {
       .skip(skip)
       .limit(parseInt(limit));
 
+    console.log(`Found ${bookings.length} bookings`);
+
     const total = await Booking.countDocuments(query);
+
+    console.log('Total bookings:', total);
+    console.log('Response data:', {
+      docs: bookings.length,
+      totalDocs: total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil(total / parseInt(limit))
+    });
 
     res.json({
       success: true,
@@ -259,6 +294,7 @@ const getUserBookings = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('getUserBookings error details:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get bookings',
@@ -648,6 +684,35 @@ const cancelBooking = async (req, res) => {
   }
 };
 
+// Update payment status (Collector or Admin only)
+const updatePaymentStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const allowedStatuses = ['pending', 'partial', 'paid', 'failed', 'refunded'];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid payment status' });
+    }
+    const booking = await Booking.findById(id);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+    // Only assigned service provider or admin can update
+    if (
+      booking.serviceProvider.toString() !== req.user._id.toString() &&
+      req.user.role !== 'admin'
+    ) {
+      return res.status(403).json({ success: false, message: 'Not authorized to update payment status' });
+    }
+    booking.payment.status = status;
+    await booking.save();
+    res.json({ success: true, message: 'Payment status updated', data: { booking } });
+  } catch (error) {
+    console.error('Update payment status error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update payment status', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
+  }
+};
+
 module.exports = {
   createBooking,
   getUserBookings,
@@ -655,5 +720,6 @@ module.exports = {
   updateBookingStatus,
   updateLocation,
   addMessage,
-  cancelBooking
+  cancelBooking,
+  updatePaymentStatus
 };

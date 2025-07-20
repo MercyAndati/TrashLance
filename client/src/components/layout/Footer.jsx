@@ -35,22 +35,22 @@ const Footer = () => {
             <h3 className="text-lg font-semibold">Quick Links</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/about" className="text-gray-400 hover:text-white transition-colors">
+                <Link to="/help#about" className="text-gray-400 hover:text-white transition-colors">
                   About Us
                 </Link>
               </li>
               <li>
-                <Link to="/services" className="text-gray-400 hover:text-white transition-colors">
+                <Link to="/info#collectors" className="text-gray-400 hover:text-white transition-colors">
                   Services
                 </Link>
               </li>
               <li>
-                <Link to="/how-it-works" className="text-gray-400 hover:text-white transition-colors">
+                <Link to="/info#how-it-works" className="text-gray-400 hover:text-white transition-colors">
                   How It Works
                 </Link>
               </li>
               <li>
-                <Link to="/pricing" className="text-gray-400 hover:text-white transition-colors">
+                <Link to="/info#pricing" className="text-gray-400 hover:text-white transition-colors">
                   Pricing
                 </Link>
               </li>
@@ -67,7 +67,7 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/contact" className="text-gray-400 hover:text-white transition-colors">
+                <Link to="/help#contact" className="text-gray-400 hover:text-white transition-colors">
                   Contact Us
                 </Link>
               </li>
@@ -94,11 +94,11 @@ const Footer = () => {
               </div>
               <div className="flex items-center space-x-3">
                 <Phone className="w-4 h-4 text-green-400" />
-                <span className="text-gray-400">+1 (555) 123-4567</span>
+                <span className="text-gray-400">+245708491816</span>
               </div>
               <div className="flex items-center space-x-3">
                 <MapPin className="w-4 h-4 text-green-400" />
-                <span className="text-gray-400">123 Green Street, Eco City, EC 12345</span>
+                <span className="text-gray-400">Kenya, Nairobi</span>
               </div>
             </div>
           </div>

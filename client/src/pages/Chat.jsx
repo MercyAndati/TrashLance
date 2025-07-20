@@ -23,7 +23,7 @@ const Chat = () => {
   const fetchTimeoutRef = useRef(null)
   const sentMessagesRef = useRef(new Set()) // Track sent messages to prevent duplicates
   const messagesContainerRef = useRef(null)
-  const scrollPositionRef = useRef(0)
+  const creatingChatRef = useRef(false) // Prevent multiple simultaneous chat creation calls
 
   // Get user parameter from URL if provided
   const targetUserId = searchParams.get("user")
@@ -51,21 +51,7 @@ const Chat = () => {
     }, 300)
   }, [])
 
-  // Save scroll position before updates
-  const saveScrollPosition = () => {
-    if (messagesContainerRef.current) {
-      const container = messagesContainerRef.current
-      scrollPositionRef.current = container.scrollTop
-    }
-  }
 
-  // Restore scroll position after updates
-  const restoreScrollPosition = () => {
-    if (messagesContainerRef.current) {
-      const container = messagesContainerRef.current
-      container.scrollTop = scrollPositionRef.current
-    }
-  }
 
   // Socket event listeners
   useEffect(() => {
@@ -75,14 +61,11 @@ const Chat = () => {
     socket.on("new-message", (data) => {
       // Only process if this is for the active conversation and not from current user
       if (data.chatId === activeConversation?._id && data.senderId !== user._id) {
-        // Save scroll position before adding message (only for incoming messages)
-        saveScrollPosition()
-        
         // Check if we already have this message to prevent duplicates
         setMessages(prev => {
           const messageExists = prev.some(msg => msg._id === data.message._id)
           if (!messageExists) {
-            // Mark as read since it's from another user
+            // Mark as read since it's from another user (with delay to avoid UI jumps)
             setTimeout(() => {
               markMessagesAsRead(data.chatId, [data.message._id])
             }, 1000)
@@ -90,11 +73,6 @@ const Chat = () => {
           }
           return prev
         })
-
-        // Restore scroll position after state update
-        setTimeout(() => {
-          restoreScrollPosition()
-        }, 0)
       }
       // Update conversations list only if not currently in a chat
       if (!activeConversation) {
@@ -113,15 +91,7 @@ const Chat = () => {
     // Listen for message deletion
     socket.on("message-deleted", (data) => {
       if (data.chatId === activeConversation?._id) {
-        // Save scroll position before removing message
-        saveScrollPosition()
-        
         setMessages(prev => prev.filter(msg => msg._id !== data.messageId))
-        
-        // Restore scroll position after state update
-        setTimeout(() => {
-          restoreScrollPosition()
-        }, 0)
       }
     })
 
@@ -146,9 +116,18 @@ const Chat = () => {
     }
   }, [activeConversation])
 
+  // Only auto-scroll for new messages from current user or when chat is first opened
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1]
+      const isFromCurrentUser = lastMessage.sender === user._id
+      
+      // Only auto-scroll if the last message is from current user
+      if (isFromCurrentUser) {
+        scrollToBottom()
+      }
+    }
+  }, [messages, user._id])
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -167,7 +146,7 @@ const Chat = () => {
       setConversations(chats)
       
       // If a target user is specified, try to find or create a chat with them
-      if (targetUserId && chats.length > 0) {
+      if (targetUserId) {
         const existingChat = chats.find(chat => 
           chat.participants.some(p => p.user._id === targetUserId)
         )
@@ -188,11 +167,22 @@ const Chat = () => {
   }
 
   const startChatWithUser = async (userId) => {
+    // Prevent multiple simultaneous calls
+    if (creatingChatRef.current) {
+      console.log("Chat creation already in progress, skipping...")
+      return
+    }
+    
     try {
+      creatingChatRef.current = true
+      console.log("Starting chat with user:", userId)
+      
       const response = await api.post("/chats/start", {
         providerId: userId
       })
       const newChat = response.data.data.chat
+      console.log("Chat created successfully:", newChat._id)
+      
       setConversations(prev => [newChat, ...prev])
       setActiveConversation(newChat)
       
@@ -202,6 +192,8 @@ const Chat = () => {
       }
     } catch (error) {
       console.error("Failed to start chat:", error)
+    } finally {
+      creatingChatRef.current = false
     }
   }
 
@@ -253,10 +245,10 @@ const Chat = () => {
       // Add message to local state immediately
       setMessages((prev) => [...prev, newMessageData])
       
-      // Scroll to bottom after sending own message
-      setTimeout(() => {
+      // Scroll to bottom after sending own message (use requestAnimationFrame for smoother experience)
+      requestAnimationFrame(() => {
         scrollToBottom()
-      }, 100)
+      })
       
       // Clear from tracking after a delay
       setTimeout(() => {
@@ -301,9 +293,12 @@ const Chat = () => {
       const container = messagesContainerRef.current
       const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100
       
-      // Only auto-scroll if user is already near bottom
+      // Only auto-scroll if user is already near bottom or if it's a new message from current user
       if (isAtBottom) {
-        messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
+        // Use requestAnimationFrame for smoother scrolling
+        requestAnimationFrame(() => {
+          messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
+        })
       }
     }
   }
@@ -336,7 +331,7 @@ const Chat = () => {
   }
 
   return (
-    <div className="h-screen bg-gray-50 dark:bg-gray-900 flex">
+    <div className="h-screen bg-gray-50 dark:bg-gray-900 flex overflow-hidden">
       {/* Conversations List */}
       <div className="w-1/3 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
         {/* Header */}
@@ -406,7 +401,7 @@ const Chat = () => {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col h-full">
         {activeConversation ? (
           <>
             {/* Chat Header */}
@@ -442,7 +437,7 @@ const Chat = () => {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900" ref={messagesContainerRef}>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900 min-h-0" ref={messagesContainerRef}>
               {messages.map((message, index) => (
                 <div
                   key={`${message._id}-${message.sender._id}-${index}`}

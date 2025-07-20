@@ -90,6 +90,11 @@ const userSchema = new mongoose.Schema(
     serviceProvider: {
       companyName: String,
       businessLicense: String,
+      basePrice: {
+        type: Number,
+        default: 0,
+        min: [0, 'Base price cannot be negative']
+      },
       rating: {
         average: { type: Number, default: 0 },
         count: { type: Number, default: 0 },

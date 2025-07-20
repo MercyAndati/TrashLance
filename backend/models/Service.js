@@ -148,7 +148,7 @@ serviceSchema.virtual('formattedPrice').get(function() {
     case 'item': unitText = 'item'; break;
   }
   
-  return `$${basePrice}/${unitText}`;
+      return `KSh ${basePrice}/${unitText}`;
 });
 
 module.exports = mongoose.model('Service', serviceSchema);

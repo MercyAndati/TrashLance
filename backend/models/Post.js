@@ -170,11 +170,11 @@ postSchema.methods.toggleUpvote = function (userId) {
   if (existingVote) {
     // Remove upvote
     this.upvotes = this.upvotes.filter((vote) => vote.user.toString() !== userId.toString())
-    return false // Removed
+    return false 
   } else {
     // Add upvote
     this.upvotes.push({ user: userId })
-    return true // Added
+    return true 
   }
 }
 

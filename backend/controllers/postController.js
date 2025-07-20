@@ -228,6 +228,7 @@ const updatePostStatus = async (req, res) => {
       data: { post },
     })
   } catch (error) {
+    console.error('Update post status error:', error);
     res.status(500).json({
       success: false,
       message: "Failed to update post status",
@@ -290,7 +291,7 @@ const addComment = async (req, res) => {
     const comment = {
       author: req.user._id,
       content,
-      isOfficial: ["admin", "government"].includes(req.user.role),
+      isOfficial: ["admin","government"].includes(req.user.role),
     }
 
     post.comments.push(comment)

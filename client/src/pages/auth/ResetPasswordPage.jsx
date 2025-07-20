@@ -28,7 +28,19 @@ const ResetPasswordPage = () => {
 
   const validateToken = async () => {
     try {
-      await api.post("/auth/validate-reset-token", { token })
+      // Make unauthenticated request for token validation
+      const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/auth/validate-reset-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Token validation failed')
+      }
+      
       setTokenValid(true)
     } catch (error) {
       setError("Invalid or expired reset token")
@@ -109,17 +121,26 @@ const ResetPasswordPage = () => {
     setLoading(true)
 
     try {
-      await api.post("/auth/reset-password", {
-        token,
-        password: formData.password,
+      // Make unauthenticated request for password reset
+      const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/auth/reset-password/${token}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: formData.password })
       })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to reset password')
+      }
 
       setMessage("Password reset successfully! Redirecting to login...")
       setTimeout(() => {
         navigate("/login")
       }, 2000)
     } catch (error) {
-      setError(error.response?.data?.message || "Failed to reset password")
+      setError(error.message || "Failed to reset password")
     } finally {
       setLoading(false)
     }

@@ -45,4 +45,44 @@ router.put('/:id/read', authenticateToken, async (req, res) => {
   }
 });
 
+// ✅ Mark all notifications as read
+router.patch('/mark-all-read', authenticateToken, async (req, res) => {
+  try {
+    await Notification.updateMany(
+      { recipient: req.user._id, isRead: false },
+      { isRead: true }
+    );
+
+    res.json({ success: true, message: 'All notifications marked as read' });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to mark all as read',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// ✅ Delete a notification
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const notification = await Notification.findOneAndDelete({
+      _id: req.params.id,
+      recipient: req.user._id
+    });
+
+    if (!notification) {
+      return res.status(404).json({ success: false, message: 'Notification not found' });
+    }
+
+    res.json({ success: true, message: 'Notification deleted' });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete notification',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 module.exports = router;

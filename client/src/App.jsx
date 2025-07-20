@@ -1,10 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom"
 import { AuthProvider, useAuth } from "./contexts/AuthContext"
 import { ThemeProvider } from "./contexts/ThemeContext"
 import { NotificationProvider } from "./contexts/NotificationContext"
+import Notifications from "./pages/Notifications"
 
 // Components
 import Navbar from "./components/layout/Navbar"
@@ -30,13 +31,19 @@ import Chat from "./pages/Chat"
 import Leaderboard from "./pages/Leaderboard"
 import Settings from "./pages/Settings"
 import AdminDashboard from "./pages/admin/AdminDashboard"
+import AdminUsers from "./pages/admin/AdminUsers"
 import AdminPosts from "./pages/admin/AdminPosts"
+import AdminAnalytics from "./pages/admin/AdminAnalytics"
+import Analytics from "./pages/Analytics"
 import CollectorOnboarding from "./pages/CollectorOnboarding"
 import SubscriptionManagement from "./pages/SubscriptionManagement"
 import MyServices from "./pages/MyServices"
 import AddServices from "./pages/AddServices"
 import Locations from "./pages/Locations"
 import ManageLocations from "./pages/ManageLocations"
+import AdminCreateGovernmentAccount from "./pages/admin/AdminCreateGovernmentAccount"
+import InfoPage from "./pages/InfoPage"
+import HelpCenterPage from "./pages/HelpCenterPage"
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requiredRole = null }) => {
@@ -61,17 +68,21 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user } = useAuth()
+  const location = useLocation()
+  
+  // Hide footer for chat page
+  const isChatPage = location.pathname === '/chat'
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
       <div className="flex">
         {user && <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />}
-        <main className={`flex-1 ${user ? "lg:ml-64" : ""} transition-all duration-300`}>
+        <main className={`flex-1 transition-all duration-300`}>
           <div className="min-h-screen">{children}</div>
         </main>
       </div>
-      <Footer />
+      {!isChatPage && <Footer />}
     </div>
   )
 }
@@ -191,6 +202,15 @@ function App() {
                 />
 
                 <Route
+                  path="/notifications"
+                  element={
+                    <ProtectedRoute>
+                      <Notifications />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
                   path="/leaderboard"
                   element={
                     <ProtectedRoute>
@@ -249,6 +269,16 @@ function App() {
                   }
                 />
 
+                {/* Analytics Routes */}
+                <Route
+                  path="/analytics"
+                  element={
+                    <ProtectedRoute requiredRole="service_provider">
+                      <Analytics />
+                    </ProtectedRoute>
+                  }
+                />
+
                 {/* Admin Routes */}
                 <Route
                   path="/admin"
@@ -259,12 +289,54 @@ function App() {
                   }
                 />
                 <Route
+                  path="/admin/users"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminUsers />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/bookings"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <Bookings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/admin/posts"
                   element={
                     <ProtectedRoute requiredRole="admin">
                       <AdminPosts />
                     </ProtectedRoute>
                   }
+                />
+                <Route
+                  path="/admin/analytics"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminAnalytics />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/create-government"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminCreateGovernmentAccount />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/info"
+                  element={<InfoPage />}
+                />
+
+                <Route
+                  path="/help"
+                  element={<HelpCenterPage />}
                 />
 
                 {/* Catch all route */}

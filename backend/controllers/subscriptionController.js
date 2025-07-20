@@ -122,7 +122,21 @@ const updateSubscription = async (req, res) => {
   }
 };
 
+// Public: Get available subscription plans and features
+const getAvailablePlans = (req, res) => {
+  try {
+    const plans = Object.keys(subscriptionPlans).map(planName => ({
+      name: planName,
+      ...subscriptionPlans[planName]
+    }));
+    res.json({ success: true, data: plans });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to get plans', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
+  }
+};
+
 module.exports = {
   getSubscriptionStatus,
-  updateSubscription
+  updateSubscription,
+  getAvailablePlans
 };

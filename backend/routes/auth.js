@@ -8,6 +8,7 @@ const {
   sendPhoneVerification,
   verifyPhone,
   forgotPassword,
+  validateResetToken,
   resetPassword,
   changePassword,
   getCurrentUser,
@@ -29,6 +30,12 @@ router.post(
   "/forgot-password",
   [body("email").isEmail().normalizeEmail().withMessage("Please provide a valid email"), handleValidationErrors],
   forgotPassword,
+)
+
+router.post(
+  "/validate-reset-token",
+  [body("token").notEmpty().withMessage("Reset token is required"), handleValidationErrors],
+  validateResetToken,
 )
 
 router.post(

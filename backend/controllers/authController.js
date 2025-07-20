@@ -228,6 +228,47 @@ const forgotPassword = async (req, res) => {
   }
 }
 
+// Validate reset token
+const validateResetToken = async (req, res) => {
+  try {
+    const { token } = req.body
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: "Reset token is required",
+      })
+    }
+
+    // Hash token
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex")
+
+    // Find user with valid token
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { $gt: Date.now() },
+    })
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired reset token",
+      })
+    }
+
+    res.json({
+      success: true,
+      message: "Reset token is valid",
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Token validation failed",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    })
+  }
+}
+
 // Reset password
 const resetPassword = async (req, res) => {
   try {
@@ -436,6 +477,7 @@ module.exports = {
   sendPhoneVerification,
   verifyPhone,
   forgotPassword,
+  validateResetToken,
   resetPassword,
   changePassword,
   getCurrentUser,

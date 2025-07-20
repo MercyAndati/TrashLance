@@ -1,7 +1,10 @@
 const express = require("express")
 const router = express.Router()
-const { getSubscriptionStatus, updateSubscription } = require("../controllers/subscriptionController")
+const { getSubscriptionStatus, updateSubscription, getAvailablePlans } = require("../controllers/subscriptionController")
 const { authenticateToken } = require("../middleware/auth")
+
+// Public: Get available plans
+router.get("/plans", getAvailablePlans)
 
 // Must be logged in to manage subscriptions
 router.use(authenticateToken)

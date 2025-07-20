@@ -119,6 +119,19 @@ chatSchema.index({ relatedBooking: 1 })
 chatSchema.index({ lastActivity: -1 })
 chatSchema.index({ "messages.sentAt": -1 })
 
+// Unique compound index to prevent duplicate chats between the same users
+chatSchema.index(
+  { 
+    "participants.user": 1, 
+    chatType: 1, 
+    relatedBooking: 1 
+  }, 
+  { 
+    unique: true,
+    partialFilterExpression: { status: "active" }
+  }
+)
+
 // Method to add message
 chatSchema.methods.addMessage = function (senderId, content, messageType = "text", metadata = {}) {
   const message = {
@@ -184,24 +197,73 @@ chatSchema.methods.getUnreadCount = function (userId) {
 
 // Static method to find or create chat between users
 chatSchema.statics.findOrCreateDirectChat = async function (user1Id, user2Id, relatedBooking = null) {
-  // Try to find existing chat
-  let chat = await this.findOne({
-    chatType: relatedBooking ? "booking" : "direct",
-    "participants.user": { $all: [user1Id, user2Id] },
-    ...(relatedBooking && { relatedBooking }),
-  })
-
-  if (!chat) {
-    // Create new chat
-    chat = new this({
-      participants: [{ user: user1Id }, { user: user2Id }],
+  try {
+    // Convert to strings for consistent comparison
+    const user1IdStr = user1Id.toString()
+    const user2IdStr = user2Id.toString()
+    
+    console.log(`Looking for chat between ${user1IdStr} and ${user2IdStr}, booking: ${relatedBooking}`)
+    
+    // Try to find existing chat with more specific query
+    let chat = await this.findOne({
       chatType: relatedBooking ? "booking" : "direct",
+      "participants.user": { $all: [user1Id, user2Id] },
+      status: "active",
       ...(relatedBooking && { relatedBooking }),
     })
-    await chat.save()
-  }
 
-  return chat
+    if (chat) {
+      console.log(`Found existing chat: ${chat._id}`)
+      return chat
+    }
+
+    // Check if there are any other chats between these users (in case of duplicates)
+    const existingChats = await this.find({
+      "participants.user": { $all: [user1Id, user2Id] },
+      status: "active",
+      ...(relatedBooking && { relatedBooking }),
+    })
+
+    if (existingChats.length > 0) {
+      console.log(`Found ${existingChats.length} existing chats, using the first one`)
+      return existingChats[0]
+    }
+
+    console.log(`Creating new chat between ${user1IdStr} and ${user2IdStr}`)
+    
+    try {
+      // Create new chat
+      chat = new this({
+        participants: [{ user: user1Id }, { user: user2Id }],
+        chatType: relatedBooking ? "booking" : "direct",
+        ...(relatedBooking && { relatedBooking }),
+      })
+      await chat.save()
+      
+      console.log(`Created new chat: ${chat._id}`)
+      return chat
+    } catch (error) {
+      // If duplicate key error, try to find the existing chat again
+      if (error.code === 11000) {
+        console.log("Duplicate chat detected, finding existing chat...")
+        const existingChat = await this.findOne({
+          chatType: relatedBooking ? "booking" : "direct",
+          "participants.user": { $all: [user1Id, user2Id] },
+          status: "active",
+          ...(relatedBooking && { relatedBooking }),
+        })
+        
+        if (existingChat) {
+          console.log(`Found existing chat after duplicate error: ${existingChat._id}`)
+          return existingChat
+        }
+      }
+      throw error
+    }
+  } catch (error) {
+    console.error("Error in findOrCreateDirectChat:", error)
+    throw error
+  }
 }
 
 module.exports = mongoose.model("Chat", chatSchema)

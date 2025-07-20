@@ -263,41 +263,46 @@ const startChatWithUser = async (req, res) => {
       },
     ])
 
-    // Send notifications to both users
-    const io = req.app.get("io")
-    
-    // Notify the target user about the new chat
-    io.to(targetUserId).emit("new-chat", {
-      chatId: chat._id,
-      initiator: req.user._id,
-      message: `${req.user.username} started a conversation with you`
-    })
+    // Check if this is a new chat (no messages yet) to avoid duplicate notifications
+    const isNewChat = chat.messages.length === 0
 
-    // Send email notification to target user
-    await Notification.createAndSend({
-      recipient: targetUserId,
-      type: "new_chat",
-      title: "New Conversation",
-      message: `${req.user.username} started a conversation with you`,
-      category: "chat",
-      data: {
+    // Send notifications to both users only if it's a new chat
+    if (isNewChat) {
+      const io = req.app.get("io")
+      
+      // Notify the target user about the new chat
+      io.to(targetUserId).emit("new-chat", {
         chatId: chat._id,
-        actionUrl: `/chat?chatId=${chat._id}`
-      }
-    })
+        initiator: req.user._id,
+        message: `${req.user.username} started a conversation with you`
+      })
 
-    // Send email notification to initiator
-    await Notification.createAndSend({
-      recipient: req.user._id,
-      type: "new_chat",
-      title: "Conversation Started",
-      message: `You started a conversation with ${targetUser.username}`,
-      category: "chat",
-      data: {
-        chatId: chat._id,
-        actionUrl: `/chat?chatId=${chat._id}`
-      }
-    })
+      // Send email notification to target user
+      await Notification.createAndSend({
+        recipient: targetUserId,
+        type: "new_chat",
+        title: "New Conversation",
+        message: `${req.user.username} started a conversation with you`,
+        category: "chat",
+        data: {
+          chatId: chat._id,
+          actionUrl: `/chat?chatId=${chat._id}`
+        }
+      })
+
+      // Send email notification to initiator
+      await Notification.createAndSend({
+        recipient: req.user._id,
+        type: "new_chat",
+        title: "Conversation Started",
+        message: `You started a conversation with ${targetUser.username}`,
+        category: "chat",
+        data: {
+          chatId: chat._id,
+          actionUrl: `/chat?chatId=${chat._id}`
+        }
+      })
+    }
 
     res.json({
       success: true,

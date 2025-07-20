@@ -4,7 +4,11 @@ const {
   getAllUsers,
   verifyCollector,
   deleteUserByAdmin,
-  createGovernmentAccount
+  createGovernmentAccount,
+  getAdminStats,
+  getRecentActivity,
+  getAdminAnalytics,
+  exportAnalytics
 } = require('../controllers/adminController');
 
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
@@ -23,5 +27,17 @@ router.delete('/users/:id', deleteUserByAdmin);
 
 // Create a government account
 router.post('/create-government', createGovernmentAccount);
+
+// Get admin dashboard stats
+router.get('/stats', getAdminStats);
+
+// Get recent activity
+router.get('/recent-activity', getRecentActivity);
+
+// Get admin analytics
+router.get('/analytics', getAdminAnalytics);
+
+// Export analytics data
+router.get('/analytics/export', exportAnalytics);
 
 module.exports = router;

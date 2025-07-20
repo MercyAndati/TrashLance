@@ -12,28 +12,8 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    required: [true, 'Notification type is required'],
-    enum: [
-      'booking_confirmed',
-      'booking_cancelled',
-      'booking_rescheduled',
-      'service_started',
-      'service_completed',
-      'payment_received',
-      'payment_failed',
-      'comment_received',
-      'provider_arriving',
-      'provider_delayed',
-      'system_maintenance',
-      'account_verified',
-      'password_changed',
-      'new_message',
-      'new_comment',
-      'new_chat',
-      'chat_message',
-      'promotion',
-      'reminder'
-    ]
+    enum: ["message", "system", "status_update"],
+    required: true
   },
   title: {
     type: String,

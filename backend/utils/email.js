@@ -98,7 +98,7 @@ const templates = {
           <p><strong>Service:</strong> {{serviceName}}</p>
           <p><strong>Date & Time:</strong> {{scheduledDateTime}}</p>
           <p><strong>Provider:</strong> {{providerName}}</p>
-          <p><strong>Total Amount:</strong> \$\{{totalAmount}}</p>
+          <p><strong>Total Amount:</strong> KSh \{{totalAmount}}</p>
         </div>
         <div style="text-align: center; margin: 30px 0;">
           <a href="{{bookingUrl}}" style="background-color: #2c5aa0; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">View Booking</a>

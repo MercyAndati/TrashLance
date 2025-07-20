@@ -7,7 +7,8 @@ const {
   updateBookingStatus,
   updateLocation,
   addMessage,
-  cancelBooking
+  cancelBooking,
+  updatePaymentStatus
 } = require('../controllers/bookingController');
 
 const { authenticateToken, requireEmailVerification } = require('../middleware/auth');
@@ -62,5 +63,8 @@ router.patch('/:id/cancel', [
   body('reason').trim().isLength({ min: 1, max: 500 })
     .withMessage('Cancellation reason is required and cannot exceed 500 characters')
 ], cancelBooking);
+
+// Update payment status (for collectors/admin)
+router.patch('/:id/payment-status', updatePaymentStatus);
 
 module.exports = router;

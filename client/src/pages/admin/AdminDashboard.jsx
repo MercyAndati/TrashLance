@@ -55,7 +55,7 @@ const AdminDashboard = () => {
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Total Users</p>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.totalUsers || 0}</p>
-                <p className="text-sm text-green-600 dark:text-green-400">+12% from last month</p>
+                <p className="text-sm text-green-600 dark:text-green-400">{stats.userGrowth || '+12%'} from last month</p>
               </div>
               <Users className="w-12 h-12 text-blue-600 dark:text-blue-400" />
             </div>
@@ -66,7 +66,7 @@ const AdminDashboard = () => {
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Active Bookings</p>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.activeBookings || 0}</p>
-                <p className="text-sm text-green-600 dark:text-green-400">+8% from last week</p>
+                <p className="text-sm text-green-600 dark:text-green-400">{stats.bookingGrowth || '+8%'} from last week</p>
               </div>
               <Calendar className="w-12 h-12 text-green-600 dark:text-green-400" />
             </div>
@@ -77,7 +77,7 @@ const AdminDashboard = () => {
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Total Reports</p>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.totalReports || 0}</p>
-                <p className="text-sm text-red-600 dark:text-red-400">+15% from last month</p>
+                <p className="text-sm text-red-600 dark:text-red-400">{stats.reportGrowth || '+15%'} from last month</p>
               </div>
               <FileText className="w-12 h-12 text-red-600 dark:text-red-400" />
             </div>
@@ -87,10 +87,46 @@ const AdminDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Platform Revenue</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">${stats.totalRevenue || 0}</p>
-                <p className="text-sm text-green-600 dark:text-green-400">+22% from last month</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">KSh {stats.totalRevenue || 0}</p>
+                <p className="text-sm text-green-600 dark:text-green-400">{stats.revenueGrowth || '+22%'} from last month</p>
               </div>
               <DollarSign className="w-12 h-12 text-yellow-600 dark:text-yellow-400" />
+            </div>
+          </div>
+        </div>
+
+        {/* Additional Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Completed Bookings</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.completedBookings || 0}</p>
+                <p className="text-sm text-green-600 dark:text-green-400">Total completed</p>
+              </div>
+              <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Verified Providers</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.verifiedProviders || 0}</p>
+                <p className="text-sm text-blue-600 dark:text-blue-400">Active collectors</p>
+              </div>
+              <Users className="w-10 h-10 text-blue-600 dark:text-blue-400" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Monthly Revenue</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">KSh {stats.monthlyRevenue || 0}</p>
+                <p className="text-sm text-yellow-600 dark:text-yellow-400">Last 30 days</p>
+              </div>
+              <TrendingUp className="w-10 h-10 text-yellow-600 dark:text-yellow-400" />
             </div>
           </div>
         </div>
@@ -130,6 +166,11 @@ const AdminDashboard = () => {
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           {new Date(activity.timestamp).toLocaleString()}
                         </p>
+                        {activity.type === "booking_created" && activity.amount && (
+                          <p className="text-xs text-green-600 dark:text-green-400">
+                            Amount: KSh {activity.amount}
+                          </p>
+                        )}
                       </div>
                     </div>
                   ))

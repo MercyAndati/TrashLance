@@ -31,7 +31,10 @@ const Bookings = () => {
         ...(searchQuery && { search: searchQuery }),
       })
 
+      console.log('Fetching bookings with params:', params.toString())
       const response = await api.get(`/bookings?${params}`)
+      console.log('Bookings response:', response.data)
+      
       setBookings(response.data.data.docs || [])
       setTotalPages(response.data.data.totalPages || 1)
     } catch (error) {
@@ -220,7 +223,7 @@ const Bookings = () => {
                       <div className="flex items-center space-x-4">
                         {booking.pricing?.totalAmount && (
                           <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                            ${booking.pricing.totalAmount}
+                            KSh {booking.pricing.totalAmount}
                           </span>
                         )}
                         {user.role === "customer" && booking.serviceProvider?.rating && (

@@ -97,18 +97,46 @@ const getUserStats = async (req, res) => {
   try {
     const userId = req.user._id;
     
-    const [bookings, services] = await Promise.all([
+    const [bookings, services, completedBookings, upcomingBookings, totalEarnings, monthlyEarnings] = await Promise.all([
       Booking.countDocuments({
         $or: [{ customer: userId }, { serviceProvider: userId }]
       }),
       req.user.role === 'service_provider' ? 
         Service.countDocuments({ provider: userId }) : 
+        Promise.resolve(0),
+      req.user.role === 'service_provider' ?
+        Booking.countDocuments({ serviceProvider: userId, status: 'completed' }) :
+        Promise.resolve(0),
+      req.user.role === 'service_provider' ?
+        Booking.countDocuments({ serviceProvider: userId, status: { $in: ['pending', 'confirmed'] } }) :
+        Promise.resolve(0),
+      req.user.role === 'service_provider' ?
+        Booking.aggregate([
+          { $match: { serviceProvider: userId, status: 'completed' } },
+          { $group: { _id: null, total: { $sum: '$pricing.totalAmount' } } }
+        ]).then(result => result[0]?.total || 0) :
+        Promise.resolve(0),
+      req.user.role === 'service_provider' ?
+        Booking.aggregate([
+          { 
+            $match: { 
+              serviceProvider: userId, 
+              status: 'completed',
+              createdAt: { $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) }
+            } 
+          },
+          { $group: { _id: null, total: { $sum: '$pricing.totalAmount' } } }
+        ]).then(result => result[0]?.total || 0) :
         Promise.resolve(0)
     ]);
 
     const stats = {
       bookings,
       services,
+      completedBookings,
+      upcomingBookings,
+      totalEarnings,
+      monthlyEarnings,
       rating: req.user.serviceProvider?.rating?.average || 0,
       points: req.user.points || 0
     };
@@ -301,6 +329,7 @@ const completeOnboarding = async (req, res) => {
         role: 'service_provider',
         'serviceProvider.companyName': companyName,
         'serviceProvider.businessLicense': businessLicense || '',
+        'serviceProvider.basePrice': parseFloat(pricing.basePrice) || 0,
         'serviceProvider.servicesOffered': [], // Will be populated by services created below
         'serviceProvider.workingHours': workingHours,
         'serviceProvider.serviceRadius': serviceRadius || 10,

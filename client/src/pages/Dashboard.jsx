@@ -43,8 +43,8 @@ const Dashboard = () => {
       const bookingsResponse = await api.get("/bookings?limit=5")
       setRecentBookings(bookingsResponse.data.data.docs || [])
 
-      // Fetch recent posts (for customers)
-      if (user.role === "customer") {
+      // Fetch recent posts (for customers and government)
+      if (user.role === "customer" || user.role === "government") {
         const postsResponse = await api.get("/posts?limit=5")
         setRecentPosts(postsResponse.data.data.docs || [])
       }
@@ -81,7 +81,7 @@ const Dashboard = () => {
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Link
-          to="/services"
+          to="/locations"
           className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200 dark:border-gray-700"
         >
           <div className="flex items-center space-x-4">
@@ -90,7 +90,7 @@ const Dashboard = () => {
             </div>
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-white">Book a Pickup</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Schedule waste collection</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Find collectors near you</p>
             </div>
           </div>
         </Link>
@@ -187,11 +187,11 @@ const Dashboard = () => {
                 <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-500 dark:text-gray-400">No bookings yet</p>
                 <Link
-                  to="/services"
+                  to="/locations"
                   className="inline-flex items-center mt-4 text-green-600 dark:text-green-400 hover:underline"
                 >
                   <Plus className="w-4 h-4 mr-1" />
-                  Book your first service
+                  Find collectors near you
                 </Link>
               </div>
             ) : (
@@ -232,7 +232,7 @@ const Dashboard = () => {
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recommended Collectors</h3>
-              <Link to="/services" className="text-green-600 dark:text-green-400 hover:underline text-sm">
+              <Link to="/locations" className="text-green-600 dark:text-green-400 hover:underline text-sm">
                 View All
               </Link>
             </div>
@@ -367,7 +367,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">This Month Earnings</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">${stats.monthlyEarnings || 0}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">KSh {stats.monthlyEarnings || 0}</p>
             </div>
             <DollarSign className="w-8 h-8 text-green-600 dark:text-green-400" />
           </div>
@@ -524,7 +524,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Revenue</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">${stats.totalRevenue || 0}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">KSh {stats.totalRevenue || 0}</p>
             </div>
             <DollarSign className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
           </div>

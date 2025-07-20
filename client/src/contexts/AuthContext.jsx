@@ -98,7 +98,7 @@ export const AuthProvider = ({ children }) => {
             sunday: { start: "09:00", end: "17:00", isOpen: false },
           },
           pricing: userData.pricing || {
-            currency: "USD",
+            currency: "KSh",
             startingPrice: 0,
           },
           serviceAreas: userData.serviceAreas || [],

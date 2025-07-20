@@ -195,7 +195,7 @@ bookingSchema.pre('save', async function(next) {
   if (!this.bookingNumber) {
     const count = await this.constructor.countDocuments();
     this.bookingNumber = `TL${Date.now()}${String(count + 1).padStart(4, '0')}`;
-    console.log('Generated bookingNumber:', this.bookingNumber); // <-- Add this line
+    console.log('Generated bookingNumber:', this.bookingNumber); 
   }
   next();
 });

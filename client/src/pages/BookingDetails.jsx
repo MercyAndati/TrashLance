@@ -14,6 +14,7 @@ import {
   MessageCircle,
   ArrowLeft,
   AlertTriangle,
+  DollarSign,
 } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 import api from "../services/api"
@@ -31,6 +32,14 @@ const SPECIAL_STATUSES = [
   { value: 'rescheduled', label: 'Rescheduled', color: 'bg-yellow-500' },
 ];
 
+const PAYMENT_STATUSES = [
+  { value: 'pending', label: 'Pending', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' },
+  { value: 'partial', label: 'Partially Paid', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' },
+  { value: 'paid', label: 'Paid', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' },
+  { value: 'failed', label: 'Failed', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' },
+  { value: 'refunded', label: 'Refunded', color: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300' },
+];
+
 const BookingDetails = () => {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -46,6 +55,7 @@ const BookingDetails = () => {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState("");
   const [reviewSuccess, setReviewSuccess] = useState(false);
+  const [paymentActionLoading, setPaymentActionLoading] = useState(false);
 
   useEffect(() => {
     fetchBookingDetails()
@@ -77,6 +87,21 @@ const BookingDetails = () => {
       setActionLoading(false)
     }
   }
+
+  const handlePaymentStatusUpdate = async (newStatus) => {
+    try {
+      setPaymentActionLoading(true);
+      const response = await api.patch(`/bookings/${id}/payment-status`, { status: newStatus });
+      const updatedBooking = response.data.data.booking || response.data.data;
+      if (updatedBooking && updatedBooking._id) {
+        setBooking(updatedBooking);
+      }
+    } catch (error) {
+      console.error("Failed to update payment status:", error);
+    } finally {
+      setPaymentActionLoading(false);
+    }
+  };
 
   const handleSubmitReview = async () => {
     setReviewLoading(true);
@@ -137,30 +162,112 @@ const BookingDetails = () => {
   const renderStatusStepper = () => {
     if (!booking || !booking.status) return null;
     return (
-      <div className={`flex ${isMobile ? 'flex-col items-start' : 'flex-row items-center'} w-full mb-6`}>
-        {BOOKING_STATUSES.map((step, idx) => {
-          const isCompleted = idx < currentStatusIndex;
-          const isCurrent = idx === currentStatusIndex && !isSpecialStatus;
-          return (
-            <div key={step.value} className={`flex ${isMobile ? 'flex-row items-center mb-4' : 'flex-col items-center flex-1'}`}>
-              <button
-                disabled={user.role !== 'service_provider' || idx > currentStatusIndex + 1 || isSpecialStatus || idx <= currentStatusIndex}
-                onClick={() => handleStatusUpdate(step.value)}
-                className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-colors
-                ${isCompleted ? 'bg-green-600 border-green-600 text-white' : isCurrent ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-300 text-gray-400'}
-                ${user.role === 'service_provider' && idx === currentStatusIndex + 1 && !isSpecialStatus ? 'hover:border-blue-600 hover:bg-blue-50 cursor-pointer' : ''}
-              `}
-                title={step.label}
-              >
-                {isCompleted || isCurrent ? <CheckCircle className="w-6 h-6" /> : idx + 1}
-              </button>
-              <span className={`mt-2 text-xs ${isCurrent ? 'text-blue-600 font-semibold' : 'text-gray-500'}`}>{step.label}</span>
-              {idx < BOOKING_STATUSES.length - 1 && (
-                <div className={`${isMobile ? 'w-8 h-1' : 'h-8 w-1'} ${isCompleted ? 'bg-green-600' : 'bg-gray-300'} mx-2 rounded-full`} />
-              )}
-            </div>
-          );
-        })}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="flex items-center space-x-2 mb-4">
+          <CheckCircle className="w-5 h-5 text-blue-600" />
+          <h3 className="font-semibold text-gray-900 dark:text-white">Booking Status</h3>
+        </div>
+        
+        <div className={`flex ${isMobile ? 'flex-col' : 'flex-row items-center justify-between'} w-full`}>
+          {BOOKING_STATUSES.map((step, idx) => {
+            const isCompleted = idx < currentStatusIndex;
+            const isCurrent = idx === currentStatusIndex && !isSpecialStatus;
+            const isLastStep = idx === BOOKING_STATUSES.length - 1;
+            
+            return (
+              <div key={step.value} className={`flex ${isMobile ? 'flex-row items-center w-full' : 'flex-col items-center flex-1'}`}>
+                <div className={`flex ${isMobile ? 'flex-row' : 'flex-col'} items-center ${isMobile ? 'w-full' : ''}`}>
+                  <button
+                    disabled={user.role !== 'service_provider' || idx > currentStatusIndex + 1 || isSpecialStatus || idx <= currentStatusIndex}
+                    onClick={() => handleStatusUpdate(step.value)}
+                    className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-colors ${isMobile ? 'flex-shrink-0' : ''}
+                    ${isCompleted ? 'bg-green-600 border-green-600 text-white' : isCurrent ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-300 text-gray-400'}
+                    ${user.role === 'service_provider' && idx === currentStatusIndex + 1 && !isSpecialStatus ? 'hover:border-blue-600 hover:bg-blue-50 cursor-pointer' : ''}
+                  `}
+                    title={step.label}
+                  >
+                    {isCompleted || isCurrent ? <CheckCircle className="w-6 h-6" /> : idx + 1}
+                  </button>
+                  
+                  <span className={`${isMobile ? 'ml-3 flex-1' : 'mt-2'} text-sm ${isCurrent ? 'text-blue-600 font-semibold' : 'text-gray-500'}`}>
+                    {step.label}
+                  </span>
+                </div>
+                
+                {!isLastStep && (
+                  <div className={`${
+                    isMobile 
+                      ? 'w-1 h-8 ml-5 my-2' // Vertical line for mobile
+                      : 'h-1 w-full mx-4'    // Horizontal line for desktop
+                  } ${isCompleted ? 'bg-green-600' : 'bg-gray-300'} rounded-full`} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // Payment Progress Stepper
+  const renderPaymentProgress = () => {
+    if (!booking || !booking.payment) return null;
+    const currentIdx = PAYMENT_STATUSES.findIndex(s => s.value === booking.payment.status);
+    
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
+            <DollarSign className="w-5 h-5 text-green-600" />
+            <h3 className="font-semibold text-gray-900 dark:text-white">Payment Status</h3>
+          </div>
+          
+          {/* Payment status update dropdown for service providers */}
+          {user.role === 'service_provider' && booking.serviceProvider?._id === user._id && (
+            <select
+              value={booking.payment.status}
+              onChange={e => handlePaymentStatusUpdate(e.target.value)}
+              disabled={paymentActionLoading}
+              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+            >
+              {PAYMENT_STATUSES.map(s => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
+          )}
+        </div>
+        
+        <div className={`flex ${isMobile ? 'flex-col' : 'flex-row items-center justify-between'} w-full`}>
+          {PAYMENT_STATUSES.map((step, idx) => {
+            const isCompleted = idx < currentIdx;
+            const isCurrent = idx === currentIdx;
+            const isLastStep = idx === PAYMENT_STATUSES.length - 1;
+            
+            return (
+              <div key={step.value} className={`flex ${isMobile ? 'flex-row items-center w-full' : 'flex-col items-center flex-1'}`}>
+                <div className={`flex ${isMobile ? 'flex-row' : 'flex-col'} items-center ${isMobile ? 'w-full' : ''}`}>
+                  <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-colors ${isMobile ? 'flex-shrink-0' : ''}
+                    ${isCompleted ? 'bg-green-600 border-green-600 text-white' : isCurrent ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-300 text-gray-400'}`}
+                  >
+                    {isCompleted || isCurrent ? <CheckCircle className="w-5 h-5" /> : idx + 1}
+                  </div>
+                  
+                  <span className={`${isMobile ? 'ml-3 flex-1' : 'mt-2'} text-xs ${isCurrent ? 'text-blue-600 font-semibold' : 'text-gray-500'}`}>
+                    {step.label}
+                  </span>
+                </div>
+                
+                {!isLastStep && (
+                  <div className={`${
+                    isMobile 
+                      ? 'w-1 h-6 ml-4 my-2' // Vertical line for mobile
+                      : 'h-1 w-full mx-4'    // Horizontal line for desktop
+                  } ${isCompleted ? 'bg-green-600' : 'bg-gray-300'} rounded-full`} />
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   };
@@ -201,25 +308,44 @@ const BookingDetails = () => {
           </div>
         </div>
 
+        {/* Progress Steppers Section */}
+        <div className="space-y-6 mb-8">
+          {/* Booking Status Stepper */}
+          {renderStatusStepper()}
+          
+          {/* Payment Progress Stepper */}
+          {renderPaymentProgress()}
+        </div>
+
+        {/* Service Provider Action Buttons */}
         {user.role === 'service_provider' && !isSpecialStatus && (
-          <div className="mb-2 text-sm text-gray-600 dark:text-gray-300 font-medium">Tick a circle to confirm status</div>
-        )}
-        {renderStatusStepper()}
-        {user.role === 'service_provider' && !isSpecialStatus && (
-          <div className="flex space-x-2 mb-6">
-            {SPECIAL_STATUSES.map(s => (
-              <button
-                key={s.value}
-                onClick={() => handleStatusUpdate(s.value)}
-                className={`px-3 py-1 rounded-full text-white text-xs font-semibold ${s.color} hover:opacity-90 transition-colors`}
-              >
-                {s.label}
-              </button>
-            ))}
+          <div className="mb-6">
+            <div className="mb-2 text-sm text-gray-600 dark:text-gray-300 font-medium">Quick Actions:</div>
+            <div className="flex flex-wrap gap-2">
+              {SPECIAL_STATUSES.map(s => (
+                <button
+                  key={s.value}
+                  onClick={() => handleStatusUpdate(s.value)}
+                  className={`px-4 py-2 rounded-lg text-white text-sm font-semibold ${s.color} hover:opacity-90 transition-colors`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
+
+        {/* Special Status Alert */}
         {isSpecialStatus && (
-          <div className={`mb-4 px-4 py-2 rounded-lg text-white font-semibold ${booking.status === 'cancelled' ? 'bg-red-600' : 'bg-yellow-500'}`}>{booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}</div>
+          <div className={`mb-6 px-4 py-3 rounded-lg text-white font-semibold ${booking.status === 'cancelled' ? 'bg-red-600' : 'bg-yellow-500'}`}>
+            <div className="flex items-center space-x-2">
+              <AlertTriangle className="w-5 h-5" />
+              <span>Booking {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}</span>
+            </div>
+            {booking.cancellationReason && (
+              <p className="mt-2 text-sm opacity-90">{booking.cancellationReason}</p>
+            )}
+          </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -261,7 +387,6 @@ const BookingDetails = () => {
                     </div>
                   </div>
                 </div>
-
 
                 {booking.notes && (
                   <div>
@@ -428,18 +553,6 @@ const BookingDetails = () => {
                     Mark as Completed
                   </button>
                 </div>
-              </div>
-            )}
-
-            {booking.status === "cancelled" && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                <div className="flex items-center space-x-2">
-                  <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
-                  <span className="text-red-700 dark:text-red-400 font-medium">Booking Cancelled</span>
-                </div>
-                {booking.cancellationReason && (
-                  <p className="text-red-600 dark:text-red-400 text-sm mt-2">{booking.cancellationReason}</p>
-                )}
               </div>
             )}
           </div>
