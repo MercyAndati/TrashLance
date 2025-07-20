@@ -182,7 +182,7 @@ const createBooking = async (req, res) => {
       subject: 'New Booking Request - Trashlance',
       template: 'newBooking',
       data: {
-        providerName: provider.usernam,
+        providerName: provider.username,
         customerName: `${req.user.username}`,
         serviceName: serviceDoc.name,
         scheduledDate: booking.scheduledDate,
