@@ -197,47 +197,73 @@ chatSchema.methods.getUnreadCount = function (userId) {
 
 // Static method to find or create chat between users
 chatSchema.statics.findOrCreateDirectChat = async function (user1Id, user2Id, relatedBooking = null) {
-  // Always sort user IDs for consistent storage and querying
-  const user1IdStr = user1Id.toString();
-  const user2IdStr = user2Id.toString();
-  const sortedUserIds = [user1IdStr, user2IdStr].sort();
+  try {
+    // Convert to strings for consistent comparison
+    const user1IdStr = user1Id.toString()
+    const user2IdStr = user2Id.toString()
+    
+    console.log(`Looking for chat between ${user1IdStr} and ${user2IdStr}, booking: ${relatedBooking}`)
+    
+    // Try to find existing chat with more specific query
+    let chat = await this.findOne({
+      chatType: relatedBooking ? "booking" : "direct",
+      "participants.user": { $all: [user1Id, user2Id] },
+      status: "active",
+      ...(relatedBooking && { relatedBooking }),
+    })
 
-  console.log(`Looking for chat between ${sortedUserIds[0]} and ${sortedUserIds[1]}, booking: ${relatedBooking}`)
-  // Try to find existing chat with more specific query
-  let chat = await this.findOne({
-    chatType: relatedBooking ? "booking" : "direct",
-    "participants.user": { $all: sortedUserIds },
-    status: "active",
-    ...(relatedBooking && { relatedBooking }),
-  })
+    if (chat) {
+      console.log(`Found existing chat: ${chat._id}`)
+      return chat
+    }
 
-  if (chat) {
-    console.log(`Found existing chat: ${chat._id}`)
-    return chat
+    // Check if there are any other chats between these users (in case of duplicates)
+    const existingChats = await this.find({
+      "participants.user": { $all: [user1Id, user2Id] },
+      status: "active",
+      ...(relatedBooking && { relatedBooking }),
+    })
+
+    if (existingChats.length > 0) {
+      console.log(`Found ${existingChats.length} existing chats, using the first one`)
+      return existingChats[0]
+    }
+
+    console.log(`Creating new chat between ${user1IdStr} and ${user2IdStr}`)
+    
+    try {
+      // Create new chat
+      chat = new this({
+        participants: [{ user: user1Id }, { user: user2Id }],
+        chatType: relatedBooking ? "booking" : "direct",
+        ...(relatedBooking && { relatedBooking }),
+      })
+      await chat.save()
+      
+      console.log(`Created new chat: ${chat._id}`)
+      return chat
+    } catch (error) {
+      // If duplicate key error, try to find the existing chat again
+      if (error.code === 11000) {
+        console.log("Duplicate chat detected, finding existing chat...")
+        const existingChat = await this.findOne({
+          chatType: relatedBooking ? "booking" : "direct",
+          "participants.user": { $all: [user1Id, user2Id] },
+          status: "active",
+          ...(relatedBooking && { relatedBooking }),
+        })
+        
+        if (existingChat) {
+          console.log(`Found existing chat after duplicate error: ${existingChat._id}`)
+          return existingChat
+        }
+      }
+      throw error
+    }
+  } catch (error) {
+    console.error("Error in findOrCreateDirectChat:", error)
+    throw error
   }
-
-  // Check if there are any other chats between these users (in case of duplicates)
-  const existingChats = await this.find({
-    "participants.user": { $all: sortedUserIds },
-    status: "active",
-    ...(relatedBooking && { relatedBooking }),
-  })
-
-  if (existingChats.length > 0) {
-    console.log(`Found ${existingChats.length} existing chats, using the first one`)
-    return existingChats[0]
-  }
-
-  console.log(`Creating new chat between ${sortedUserIds[0]} and ${sortedUserIds[1]}`)
-  // Create new chat (let errors bubble up to controller)
-  chat = new this({
-    participants: [{ user: sortedUserIds[0] }, { user: sortedUserIds[1] }],
-    chatType: relatedBooking ? "booking" : "direct",
-    ...(relatedBooking && { relatedBooking }),
-  })
-  await chat.save()
-  console.log(`Created new chat: ${chat._id}`)
-  return chat
 }
 
 module.exports = mongoose.model("Chat", chatSchema)
