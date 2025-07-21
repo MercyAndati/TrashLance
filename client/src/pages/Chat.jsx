@@ -70,8 +70,7 @@ const Chat = () => {
 
     // Listen for new messages
     socket.on("new-message", (data) => {
-      // Always update the conversation list
-      debouncedFetchConversations()
+      // Only update the conversation list if a new chat is created
       // If the message is for the current chat, add it to messages
       if (data.chatId === activeConversation?._id) {
         setMessages(prev => {
@@ -89,8 +88,8 @@ const Chat = () => {
 
     // Listen for new chat notifications
     socket.on("new-chat", (data) => {
-      // Always update the conversation list
-      debouncedFetchConversations()
+      // Only update the conversation list if a new chat is created
+      fetchConversations()
     })
 
     // Listen for message deletion
@@ -105,7 +104,7 @@ const Chat = () => {
       socket.off("new-chat")
       socket.off("message-deleted")
     }
-  }, [socket, activeConversation, debouncedFetchConversations, user._id])
+  }, [socket, activeConversation, markMessagesAsRead])
 
   useEffect(() => {
     fetchConversations()
@@ -206,14 +205,13 @@ const Chat = () => {
     }
   }
 
+  // Only set loading to true in fetchMessages (when switching conversations)
   const fetchMessages = async (conversationId) => {
     console.log("fetchMessages called")
     try {
       setLoading(true)
       const response = await api.get(`/chats/${conversationId}/messages`)
       setMessages(response.data.data?.messages || [])
-      
-      // Join chat room for real-time updates
       if (socket) {
         socket.emit("join-chat", conversationId)
       }
@@ -237,6 +235,7 @@ const Chat = () => {
     }
   }
 
+  // Remove loading state from sendMessage and prevent unnecessary fetches after sending a message
   const sendMessage = async (e) => {
     console.log("sendMessage called")
     e.preventDefault()
@@ -252,26 +251,17 @@ const Chat = () => {
       })
 
       const newMessageData = response.data.data.message
-      
-      // Add to sent messages tracking to prevent duplicates
       sentMessagesRef.current.add(newMessageData._id)
-      
-      // Add message to local state immediately
       setMessages((prev) => [...prev, newMessageData])
-      
-      // Scroll to bottom after sending own message (use requestAnimationFrame for smoother experience)
       requestAnimationFrame(() => {
         scrollToBottom()
       })
-      
-      // Clear from tracking after a delay
       setTimeout(() => {
         sentMessagesRef.current.delete(newMessageData._id)
       }, 5000)
-      
+      // Do NOT call fetchMessages or fetchConversations here
     } catch (error) {
       console.error("Failed to send message:", error)
-      // Restore message if send failed
       setNewMessage(messageContent)
     } finally {
       setSendingMessage(false)
