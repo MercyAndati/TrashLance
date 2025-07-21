@@ -68,10 +68,8 @@ const Chat = () => {
 
     // Listen for new messages
     socket.on("new-message", (data) => {
-      // Always update the conversation list
-      debouncedFetchConversations()
-      // If the message is for the current chat, add it to messages
-      if (data.chatId === activeConversation?._id) {
+      // Only process if this is for the active conversation and not from current user
+      if (data.chatId === activeConversation?._id && data.message.sender !== user._id) {
         setMessages(prev => {
           const messageExists = prev.some(msg => msg._id === data.message._id)
           if (!messageExists) {
@@ -87,8 +85,10 @@ const Chat = () => {
 
     // Listen for new chat notifications
     socket.on("new-chat", (data) => {
-      // Always update the conversation list
-      debouncedFetchConversations()
+      // Only update conversations if we're not currently in a chat
+      if (!activeConversation) {
+        debouncedFetchConversations()
+      }
     })
 
     // Listen for message deletion
@@ -143,7 +143,7 @@ const Chat = () => {
 
   const fetchConversations = async () => {
     try {
-      setConversationsLoading(true)
+      setLoading(true)
       const response = await api.get("/chats")
       const chats = response.data.data?.chats || []
       setConversations(chats)
@@ -165,7 +165,7 @@ const Chat = () => {
     } catch (error) {
       console.error("Failed to fetch conversations:", error)
     } finally {
-      setConversationsLoading(false)
+      setLoading(false)
     }
   }
 
@@ -244,26 +244,16 @@ const Chat = () => {
       })
 
       const newMessageData = response.data.data.message
-      
-      // Add to sent messages tracking to prevent duplicates
-      sentMessagesRef.current.add(newMessageData._id)
-      
-      // Add message to local state immediately
+      // Optimistically add to messages for sender
       setMessages((prev) => [...prev, newMessageData])
-      
-      // Scroll to bottom after sending own message (use requestAnimationFrame for smoother experience)
       requestAnimationFrame(() => {
         scrollToBottom()
       })
-      
-      // Clear from tracking after a delay
       setTimeout(() => {
         sentMessagesRef.current.delete(newMessageData._id)
       }, 5000)
-      
+      // No need to fetchMessages or reload
     } catch (error) {
-      console.error("Failed to send message:", error)
-      // Restore message if send failed
       setNewMessage(messageContent)
     } finally {
       setSendingMessage(false)
