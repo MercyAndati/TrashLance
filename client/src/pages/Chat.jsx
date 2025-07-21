@@ -8,8 +8,6 @@ import api from "../services/api"
 import LoadingSpinner from "../components/common/LoadingSpinner"
 import io from "socket.io-client"
 
-console.log("Chat component rendered")
-
 const Chat = () => {
   const { user } = useAuth()
   const [searchParams] = useSearchParams()
@@ -26,22 +24,13 @@ const Chat = () => {
   const sentMessagesRef = useRef(new Set()) // Track sent messages to prevent duplicates
   const messagesContainerRef = useRef(null)
   const creatingChatRef = useRef(false) // Prevent multiple simultaneous chat creation calls
-  const [conversationsLoading, setConversationsLoading] = useState(true)
 
   // Get user parameter from URL if provided
   const targetUserId = searchParams.get("user")
 
   // Initialize Socket.IO connection
   useEffect(() => {
-    const newSocket = io(
-      import.meta.env.PROD
-        ? "https://trashlance.onrender.com"
-        : "http://localhost:5000",
-      {
-        transports: ["websocket", "polling"],
-        withCredentials: true,
-      }
-    )
+    const newSocket = io("http://localhost:5000")
     setSocket(newSocket)
 
     // Join user's room for notifications
@@ -70,12 +59,13 @@ const Chat = () => {
 
     // Listen for new messages
     socket.on("new-message", (data) => {
-      // Only update the conversation list if a new chat is created
-      // If the message is for the current chat, add it to messages
-      if (data.chatId === activeConversation?._id) {
+      // Only process if this is for the active conversation and not from current user
+      if (data.chatId === activeConversation?._id && data.senderId !== user._id) {
+        // Check if we already have this message to prevent duplicates
         setMessages(prev => {
           const messageExists = prev.some(msg => msg._id === data.message._id)
           if (!messageExists) {
+            // Mark as read since it's from another user (with delay to avoid UI jumps)
             setTimeout(() => {
               markMessagesAsRead(data.chatId, [data.message._id])
             }, 1000)
@@ -84,12 +74,18 @@ const Chat = () => {
           return prev
         })
       }
+      // Update conversations list only if not currently in a chat
+      if (!activeConversation) {
+        debouncedFetchConversations()
+      }
     })
 
     // Listen for new chat notifications
     socket.on("new-chat", (data) => {
-      // Only update the conversation list if a new chat is created
-      fetchConversations()
+      // Only update conversations if we're not currently in a chat
+      if (!activeConversation) {
+        debouncedFetchConversations()
+      }
     })
 
     // Listen for message deletion
@@ -104,7 +100,7 @@ const Chat = () => {
       socket.off("new-chat")
       socket.off("message-deleted")
     }
-  }, [socket, activeConversation, markMessagesAsRead])
+  }, [socket, activeConversation, debouncedFetchConversations, user._id])
 
   useEffect(() => {
     fetchConversations()
@@ -143,9 +139,8 @@ const Chat = () => {
   }, [])
 
   const fetchConversations = async () => {
-    console.log("fetchConversations called")
     try {
-      setConversationsLoading(true)
+      setLoading(true)
       const response = await api.get("/chats")
       const chats = response.data.data?.chats || []
       setConversations(chats)
@@ -161,16 +156,13 @@ const Chat = () => {
           // Create a new chat with the target user
           await startChatWithUser(targetUserId)
         }
-      } else if (
-        chats.length > 0 && 
-        (!activeConversation || !chats.some(chat => chat._id === activeConversation._id))
-      ) {
+      } else if (chats.length > 0) {
         setActiveConversation(chats[0])
       }
     } catch (error) {
       console.error("Failed to fetch conversations:", error)
     } finally {
-      setConversationsLoading(false)
+      setLoading(false)
     }
   }
 
@@ -205,20 +197,17 @@ const Chat = () => {
     }
   }
 
-  // Only set loading to true in fetchMessages (when switching conversations)
   const fetchMessages = async (conversationId) => {
-    console.log("fetchMessages called")
     try {
-      setLoading(true)
       const response = await api.get(`/chats/${conversationId}/messages`)
       setMessages(response.data.data?.messages || [])
+      
+      // Join chat room for real-time updates
       if (socket) {
         socket.emit("join-chat", conversationId)
       }
     } catch (error) {
       console.error("Failed to fetch messages:", error)
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -235,9 +224,7 @@ const Chat = () => {
     }
   }
 
-  // Remove loading state from sendMessage and prevent unnecessary fetches after sending a message
   const sendMessage = async (e) => {
-    console.log("sendMessage called")
     e.preventDefault()
     if (!newMessage.trim() || !activeConversation || sendingMessage) return
 
@@ -251,17 +238,26 @@ const Chat = () => {
       })
 
       const newMessageData = response.data.data.message
+      
+      // Add to sent messages tracking to prevent duplicates
       sentMessagesRef.current.add(newMessageData._id)
+      
+      // Add message to local state immediately
       setMessages((prev) => [...prev, newMessageData])
+      
+      // Scroll to bottom after sending own message (use requestAnimationFrame for smoother experience)
       requestAnimationFrame(() => {
         scrollToBottom()
       })
+      
+      // Clear from tracking after a delay
       setTimeout(() => {
         sentMessagesRef.current.delete(newMessageData._id)
       }, 5000)
-      // Do NOT call fetchMessages or fetchConversations here
+      
     } catch (error) {
       console.error("Failed to send message:", error)
+      // Restore message if send failed
       setNewMessage(messageContent)
     } finally {
       setSendingMessage(false)
@@ -355,12 +351,7 @@ const Chat = () => {
 
         {/* Conversations */}
         <div className="flex-1 overflow-y-auto">
-          {conversationsLoading ? (
-            <div className="p-8 text-center">
-              <LoadingSpinner size="md" />
-              <p className="text-gray-500 dark:text-gray-400 mt-4">Loading conversations...</p>
-            </div>
-          ) : conversations.length === 0 ? (
+          {conversations.length === 0 ? (
             <div className="p-8 text-center">
               <p className="text-gray-500 dark:text-gray-400">No conversations yet</p>
               {targetUserId && (
@@ -447,12 +438,7 @@ const Chat = () => {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900 min-h-0" ref={messagesContainerRef}>
-              {loading ? (
-                <div className="p-8 text-center">
-                  <LoadingSpinner size="md" />
-                  <p className="text-gray-500 dark:text-gray-400 mt-4">Loading messages...</p>
-                </div>
-              ) : messages.map((message, index) => (
+              {messages.map((message, index) => (
                 <div
                   key={`${message._id}-${message.sender._id}-${index}`}
                   className={`flex ${message.sender._id === user._id ? "justify-end" : "justify-start"}`}
