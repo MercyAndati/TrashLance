@@ -323,6 +323,7 @@ const startChatWithUser = async (req, res) => {
       data: { chat },
     })
   } catch (error) {
+    console.error("Error in startChatWithUser:", error); // Add full error logging
     res.status(500).json({
       success: false,
       message: "Failed to start chat",
