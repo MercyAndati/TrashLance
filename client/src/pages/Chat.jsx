@@ -162,7 +162,10 @@ const Chat = () => {
           // Create a new chat with the target user
           await startChatWithUser(targetUserId)
         }
-      } else if (chats.length > 0 && !activeConversation) {
+      } else if (
+        chats.length > 0 && 
+        (!activeConversation || !chats.some(chat => chat._id === activeConversation._id))
+      ) {
         setActiveConversation(chats[0])
       }
     } catch (error) {
