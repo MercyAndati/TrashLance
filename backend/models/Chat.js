@@ -197,15 +197,16 @@ chatSchema.methods.getUnreadCount = function (userId) {
 
 // Static method to find or create chat between users
 chatSchema.statics.findOrCreateDirectChat = async function (user1Id, user2Id, relatedBooking = null) {
-  // Convert to strings for consistent comparison
-  const user1IdStr = user1Id.toString()
-  const user2IdStr = user2Id.toString()
-  
-  console.log(`Looking for chat between ${user1IdStr} and ${user2IdStr}, booking: ${relatedBooking}`)
+  // Always sort user IDs for consistent storage and querying
+  const user1IdStr = user1Id.toString();
+  const user2IdStr = user2Id.toString();
+  const sortedUserIds = [user1IdStr, user2IdStr].sort();
+
+  console.log(`Looking for chat between ${sortedUserIds[0]} and ${sortedUserIds[1]}, booking: ${relatedBooking}`)
   // Try to find existing chat with more specific query
   let chat = await this.findOne({
     chatType: relatedBooking ? "booking" : "direct",
-    "participants.user": { $all: [user1Id, user2Id] },
+    "participants.user": { $all: sortedUserIds },
     status: "active",
     ...(relatedBooking && { relatedBooking }),
   })
@@ -217,7 +218,7 @@ chatSchema.statics.findOrCreateDirectChat = async function (user1Id, user2Id, re
 
   // Check if there are any other chats between these users (in case of duplicates)
   const existingChats = await this.find({
-    "participants.user": { $all: [user1Id, user2Id] },
+    "participants.user": { $all: sortedUserIds },
     status: "active",
     ...(relatedBooking && { relatedBooking }),
   })
@@ -227,10 +228,10 @@ chatSchema.statics.findOrCreateDirectChat = async function (user1Id, user2Id, re
     return existingChats[0]
   }
 
-  console.log(`Creating new chat between ${user1IdStr} and ${user2IdStr}`)
+  console.log(`Creating new chat between ${sortedUserIds[0]} and ${sortedUserIds[1]}`)
   // Create new chat (let errors bubble up to controller)
   chat = new this({
-    participants: [{ user: user1Id }, { user: user2Id }],
+    participants: [{ user: sortedUserIds[0] }, { user: sortedUserIds[1] }],
     chatType: relatedBooking ? "booking" : "direct",
     ...(relatedBooking && { relatedBooking }),
   })

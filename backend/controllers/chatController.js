@@ -251,13 +251,14 @@ const startChatWithUser = async (req, res) => {
 
     // Find or create chat, handle duplicate key error gracefully
     let chat;
+    const sortedUserIds = [req.user._id.toString(), targetUserId.toString()].sort();
     try {
       chat = await Chat.findOrCreateDirectChat(req.user._id, targetUserId, bookingId)
     } catch (err) {
       if (err.code === 11000) {
-        // Duplicate key error, find and return the existing chat
+        // Duplicate key error, find and return the existing chat using sorted user IDs
         chat = await Chat.findOne({
-          'participants.user': { $all: [req.user._id, targetUserId] },
+          'participants.user': { $all: sortedUserIds },
           chatType: bookingId ? 'booking' : 'direct',
           relatedBooking: bookingId || null,
           status: 'active'
