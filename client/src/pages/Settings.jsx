@@ -90,48 +90,48 @@ const Settings = () => {
   };
 
   const renderProfileSettings = () => (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Profile Information</h3>
+        <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-3 sm:mb-4">Profile Information</h3>
         <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
-              <p className="text-gray-900 dark:text-white">{user.username}</p>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
+              <p className="text-gray-900 dark:text-white text-sm sm:text-base">{user.username}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-              <p className="text-gray-900 dark:text-white">{user.email}</p>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+              <p className="text-gray-900 dark:text-white text-sm sm:text-base">{user.email}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
-              <p className="text-gray-900 dark:text-white">{user.phone}</p>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+              <p className="text-gray-900 dark:text-white text-sm sm:text-base">{user.phone}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
-              <p className="text-gray-900 dark:text-white capitalize">{user.role?.replace("_", " ")}</p>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
+              <p className="text-gray-900 dark:text-white text-sm sm:text-base capitalize">{user.role?.replace("_", " ")}</p>
             </div>
           </div>
           <div className="mt-4">
-            <button className="btn-primary">Edit Profile</button>
+            <button className="btn-primary text-sm px-4 py-2">Edit Profile</button>
           </div>
         </div>
       </div>
 
       <div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Account Statistics</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-            <h4 className="font-medium text-green-900 dark:text-green-300">Points Earned</h4>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">{user.points || 0}</p>
+        <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-3 sm:mb-4">Account Statistics</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 sm:p-4 text-center">
+            <h4 className="font-medium text-green-900 dark:text-green-300 text-sm">Points Earned</h4>
+            <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">{user.points || 0}</p>
           </div>
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-            <h4 className="font-medium text-blue-900 dark:text-blue-300">Member Since</h4>
-            <p className="text-blue-600 dark:text-blue-400">{new Date(user.createdAt).toLocaleDateString()}</p>
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4 text-center">
+            <h4 className="font-medium text-blue-900 dark:text-blue-300 text-sm">Member Since</h4>
+            <p className="text-blue-600 dark:text-blue-400 text-sm">{new Date(user.createdAt).toLocaleDateString()}</p>
           </div>
-          <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
-            <h4 className="font-medium text-purple-900 dark:text-purple-300">Account Status</h4>
-            <p className="text-purple-600 dark:text-purple-400">Active</p>
+          <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3 sm:p-4 text-center">
+            <h4 className="font-medium text-purple-900 dark:text-purple-300 text-sm">Account Status</h4>
+            <p className="text-purple-600 dark:text-purple-400 text-sm">Active</p>
           </div>
         </div>
       </div>
@@ -139,16 +139,16 @@ const Settings = () => {
   )
 
   const renderNotificationSettings = () => (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Notification Preferences</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <Mail className="w-5 h-5 text-gray-400" />
-              <div>
-                <p className="font-medium text-gray-900 dark:text-white">Email Notifications</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Receive notifications via email</p>
+        <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-3 sm:mb-4">Notification Preferences</h3>
+        <div className="space-y-3 sm:space-y-4">
+          <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+              <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">Email Notifications</p>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Receive notifications via email</p>
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -162,12 +162,12 @@ const Settings = () => {
             </label>
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <Bell className="w-5 h-5 text-gray-400" />
-              <div>
-                <p className="font-medium text-gray-900 dark:text-white">Push Notifications</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Receive push notifications in browser</p>
+          <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+              <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">Push Notifications</p>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Receive push notifications in browser</p>
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -181,12 +181,12 @@ const Settings = () => {
             </label>
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <Smartphone className="w-5 h-5 text-gray-400" />
-              <div>
-                <p className="font-medium text-gray-900 dark:text-white">SMS Notifications</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Receive important updates via SMS</p>
+          <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+              <Smartphone className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">SMS Notifications</p>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Receive important updates via SMS</p>
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -203,12 +203,12 @@ const Settings = () => {
       </div>
 
       <div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Notification Types</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div>
-              <p className="font-medium text-gray-900 dark:text-white">Booking Updates</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Status changes for your bookings</p>
+        <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-3 sm:mb-4">Notification Types</h3>
+        <div className="space-y-3 sm:space-y-4">
+          <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">Booking Updates</p>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Status changes for your bookings</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -221,10 +221,10 @@ const Settings = () => {
             </label>
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div>
-              <p className="font-medium text-gray-900 dark:text-white">Message Notifications</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">New messages from other users</p>
+          <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">Message Notifications</p>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">New messages from other users</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -237,10 +237,10 @@ const Settings = () => {
             </label>
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div>
-              <p className="font-medium text-gray-900 dark:text-white">Marketing Emails</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Updates about new features and promotions</p>
+          <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">Marketing Emails</p>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Updates about new features and promotions</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -258,18 +258,18 @@ const Settings = () => {
   )
 
   const renderSecuritySettings = () => (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Change Password</h3>
+        <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-3 sm:mb-4">Change Password</h3>
         <form onSubmit={handlePasswordChange} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Password</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Password</label>
             <div className="relative">
               <input
                 type={showPasswords.current ? "text" : "password"}
                 value={passwordForm.currentPassword}
                 onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                className="input-field pr-10"
+                className="input-field pr-10 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
                 required
               />
               <button
@@ -278,22 +278,22 @@ const Settings = () => {
                 className="absolute inset-y-0 right-0 pr-3 flex items-center"
               >
                 {showPasswords.current ? (
-                  <EyeOff className="h-5 w-5 text-gray-400" />
+                  <EyeOff className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                 ) : (
-                  <Eye className="h-5 w-5 text-gray-400" />
+                  <Eye className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                 )}
               </button>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">New Password</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">New Password</label>
             <div className="relative">
               <input
                 type={showPasswords.new ? "text" : "password"}
                 value={passwordForm.newPassword}
                 onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                className="input-field pr-10"
+                className="input-field pr-10 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
                 required
               />
               <button
@@ -302,16 +302,16 @@ const Settings = () => {
                 className="absolute inset-y-0 right-0 pr-3 flex items-center"
               >
                 {showPasswords.new ? (
-                  <EyeOff className="h-5 w-5 text-gray-400" />
+                  <EyeOff className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                 ) : (
-                  <Eye className="h-5 w-5 text-gray-400" />
+                  <Eye className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                 )}
               </button>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Confirm New Password
             </label>
             <div className="relative">
@@ -319,7 +319,7 @@ const Settings = () => {
                 type={showPasswords.confirm ? "text" : "password"}
                 value={passwordForm.confirmPassword}
                 onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                className="input-field pr-10"
+                className="input-field pr-10 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
                 required
               />
               <button
@@ -328,37 +328,37 @@ const Settings = () => {
                 className="absolute inset-y-0 right-0 pr-3 flex items-center"
               >
                 {showPasswords.confirm ? (
-                  <EyeOff className="h-5 w-5 text-gray-400" />
+                  <EyeOff className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                 ) : (
-                  <Eye className="h-5 w-5 text-gray-400" />
+                  <Eye className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                 )}
               </button>
             </div>
           </div>
 
-          <button type="submit" disabled={loading} className="btn-primary">
+          <button type="submit" disabled={loading} className="btn-primary text-sm px-4 py-2 flex items-center">
             {loading ? <LoadingSpinner size="sm" /> : "Change Password"}
           </button>
         </form>
       </div>
 
       <div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Account Security</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div>
-              <p className="font-medium text-gray-900 dark:text-white">Two-Factor Authentication</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Add an extra layer of security</p>
+        <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-3 sm:mb-4">Account Security</h3>
+        <div className="space-y-3 sm:space-y-4">
+          <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">Two-Factor Authentication</p>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Add an extra layer of security</p>
             </div>
-            <button className="btn-secondary">Enable</button>
+            <button className="btn-secondary text-sm px-3 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded">Enable</button>
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div>
-              <p className="font-medium text-gray-900 dark:text-white">Login Alerts</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Get notified of new login attempts</p>
+          <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">Login Alerts</p>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Get notified of new login attempts</p>
             </div>
-            <button className="btn-secondary">Configure</button>
+            <button className="btn-secondary text-sm px-3 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded">Configure</button>
           </div>
         </div>
       </div>
@@ -366,19 +366,19 @@ const Settings = () => {
   )
 
   const renderPreferences = () => (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Appearance</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div className="flex items-center space-x-3">
-              {isDark ? <Moon className="w-5 h-5 text-gray-400" /> : <Sun className="w-5 h-5 text-gray-400" />}
-              <div>
-                <p className="font-medium text-gray-900 dark:text-white">Dark Mode</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Switch between light and dark themes</p>
+        <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-3 sm:mb-4">Appearance</h3>
+        <div className="space-y-3 sm:space-y-4">
+          <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+              {isDark ? <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" /> : <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />}
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">Dark Mode</p>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Switch between light and dark themes</p>
               </div>
             </div>
-            <button onClick={toggleTheme} className="btn-secondary">
+            <button onClick={toggleTheme} className="btn-secondary text-sm px-3 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded">
               {isDark ? "Switch to Light" : "Switch to Dark"}
             </button>
           </div>
@@ -386,11 +386,11 @@ const Settings = () => {
       </div>
 
       <div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Language & Region</h3>
+        <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-3 sm:mb-4">Language & Region</h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Language</label>
-            <select className="input-field">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Language</label>
+            <select className="input-field w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm">
               <option value="en">English</option>
               <option value="es">Spanish</option>
               <option value="fr">French</option>
@@ -398,8 +398,8 @@ const Settings = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Time Zone</label>
-            <select className="input-field">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Time Zone</label>
+            <select className="input-field w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm">
               <option value="UTC">UTC</option>
               <option value="EST">Eastern Time</option>
               <option value="PST">Pacific Time</option>
@@ -409,20 +409,22 @@ const Settings = () => {
       </div>
 
       <div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Data & Privacy</h3>
-        <div className="space-y-4">
-          <button className="w-full text-left p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-            <p className="font-medium text-gray-900 dark:text-white">Download Your Data</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Get a copy of your account data</p>
+        <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-3 sm:mb-4">Data & Privacy</h3>
+        <div className="space-y-3 sm:space-y-4">
+          <button className="w-full text-left p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+            <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">Download Your Data</p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Get a copy of your account data</p>
           </button>
 
           <button
-            className="w-full text-left p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+            className="w-full text-left p-3 sm:p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors flex items-center justify-between"
             onClick={handleDeleteAccount}
             disabled={loading}
           >
-            <p className="font-medium text-red-900 dark:text-red-300">Delete Account</p>
-            <p className="text-sm text-red-600 dark:text-red-400">Permanently delete your account and data</p>
+            <div>
+              <p className="font-medium text-red-900 dark:text-red-300 text-sm sm:text-base">Delete Account</p>
+              <p className="text-xs sm:text-sm text-red-600 dark:text-red-400">Permanently delete your account and data</p>
+            </div>
             {loading && <LoadingSpinner size="sm" />}
           </button>
         </div>
@@ -431,17 +433,40 @@ const Settings = () => {
   )
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">Manage your account settings and preferences</p>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-4 sm:py-8">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 lg:px-8">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
+          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">Manage your account settings and preferences</p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+          {/* Mobile Tab Navigation */}
+          <div className="block lg:hidden border-b border-gray-200 dark:border-gray-600">
+            <div className="grid grid-cols-2 sm:grid-cols-4">
+              {tabs.map((tab) => {
+                const Icon = tab.icon
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex flex-col items-center justify-center py-3 px-2 text-xs transition-colors ${
+                      activeTab === tab.id
+                        ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 border-b-2 border-green-500"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 mb-1" />
+                    <span className="font-medium">{tab.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
           <div className="flex">
-            {/* Sidebar */}
-            <div className="w-1/4 bg-gray-50 dark:bg-gray-700 border-r border-gray-200 dark:border-gray-600">
+            {/* Desktop Sidebar */}
+            <div className="hidden lg:block w-1/4 bg-gray-50 dark:bg-gray-700 border-r border-gray-200 dark:border-gray-600">
               <nav className="space-y-1 p-4">
                 {tabs.map((tab) => {
                   const Icon = tab.icon
@@ -464,7 +489,7 @@ const Settings = () => {
             </div>
 
             {/* Content */}
-            <div className="flex-1 p-6">
+            <div className="flex-1 p-4 sm:p-6">
               {activeTab === "profile" && renderProfileSettings()}
               {activeTab === "notifications" && renderNotificationSettings()}
               {activeTab === "security" && renderSecuritySettings()}
