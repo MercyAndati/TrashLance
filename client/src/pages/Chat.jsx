@@ -8,6 +8,8 @@ import api from "../services/api"
 import LoadingSpinner from "../components/common/LoadingSpinner"
 import io from "socket.io-client"
 
+console.log("Chat component rendered")
+
 const Chat = () => {
   const { user } = useAuth()
   const [searchParams] = useSearchParams()
@@ -142,6 +144,7 @@ const Chat = () => {
   }, [])
 
   const fetchConversations = async () => {
+    console.log("fetchConversations called")
     try {
       setConversationsLoading(true)
       const response = await api.get("/chats")
@@ -201,6 +204,7 @@ const Chat = () => {
   }
 
   const fetchMessages = async (conversationId) => {
+    console.log("fetchMessages called")
     try {
       setLoading(true)
       const response = await api.get(`/chats/${conversationId}/messages`)
@@ -231,6 +235,7 @@ const Chat = () => {
   }
 
   const sendMessage = async (e) => {
+    console.log("sendMessage called")
     e.preventDefault()
     if (!newMessage.trim() || !activeConversation || sendingMessage) return
 
