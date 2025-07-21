@@ -249,8 +249,24 @@ const startChatWithUser = async (req, res) => {
       }
     }
 
-    // Find or create chat
-    const chat = await Chat.findOrCreateDirectChat(req.user._id, targetUserId, bookingId)
+    // Find or create chat, handle duplicate key error gracefully
+    let chat;
+    try {
+      chat = await Chat.findOrCreateDirectChat(req.user._id, targetUserId, bookingId)
+    } catch (err) {
+      if (err.code === 11000) {
+        // Duplicate key error, find and return the existing chat
+        chat = await Chat.findOne({
+          'participants.user': { $all: [req.user._id, targetUserId] },
+          chatType: bookingId ? 'booking' : 'direct',
+          relatedBooking: bookingId || null,
+          status: 'active'
+        });
+        if (!chat) throw err;
+      } else {
+        throw err;
+      }
+    }
 
     await chat.populate([
       {
@@ -269,14 +285,12 @@ const startChatWithUser = async (req, res) => {
     // Send notifications to both users only if it's a new chat
     if (isNewChat) {
       const io = req.app.get("io")
-      
       // Notify the target user about the new chat
       io.to(targetUserId).emit("new-chat", {
         chatId: chat._id,
         initiator: req.user._id,
         message: `${req.user.username} started a conversation with you`
       })
-
       // Send email notification to target user
       await Notification.createAndSend({
         recipient: targetUserId,
@@ -289,7 +303,6 @@ const startChatWithUser = async (req, res) => {
           actionUrl: `/chat?chatId=${chat._id}`
         }
       })
-
       // Send email notification to initiator
       await Notification.createAndSend({
         recipient: req.user._id,
