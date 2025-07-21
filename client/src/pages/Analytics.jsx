@@ -178,12 +178,12 @@ const Analytics = () => {
         </div>
 
         {/* Key Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-600 dark:text-gray-400 truncate">Total Earnings</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Total Earnings</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white truncate">
                   ${stats.monthlyEarnings || 0}
                 </p>
                 <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 truncate">
@@ -197,8 +197,8 @@ const Analytics = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-600 dark:text-gray-400 truncate">Total Bookings</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Total Bookings</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white truncate">
                   {stats.bookings || 0}
                 </p>
                 <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 truncate">
@@ -212,8 +212,8 @@ const Analytics = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-600 dark:text-gray-400 truncate">Average Rating</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Average Rating</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white truncate">
                   {stats.rating?.toFixed(1) || "New"}
                 </p>
                 <p className="text-xs sm:text-sm text-yellow-600 dark:text-yellow-400 truncate">
@@ -227,8 +227,8 @@ const Analytics = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-600 dark:text-gray-400 truncate">Active Services</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Active Services</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white truncate">
                   {stats.services || 0}
                 </p>
                 <p className="text-xs sm:text-sm text-purple-600 dark:text-purple-400 truncate">
@@ -241,7 +241,7 @@ const Analytics = () => {
         </div>
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-8">
           {/* Earnings Chart */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
@@ -250,14 +250,14 @@ const Analytics = () => {
             <div className="space-y-3">
               {earningsData.slice(-7).map((item, index) => (
                 <div key={index} className="flex items-center justify-between">
-                  <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate max-w-[100px] sm:max-w-none">
+                  <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate w-16 sm:w-auto">
                     {timeframe === "year" ? item.date : new Date(item.date).toLocaleDateString()}
                   </span>
-                  <div className="flex items-center space-x-2 sm:space-x-4 flex-1 justify-end">
-                    <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                  <div className="flex items-center space-x-1 sm:space-x-2 flex-1 justify-end min-w-0">
+                    <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">
                       ${item.earnings}
                     </span>
-                    <div className="w-16 sm:w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2 flex-shrink-0">
+                    <div className="w-12 sm:w-16 lg:w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2 flex-shrink-0">
                       <div 
                         className="bg-green-600 h-2 rounded-full"
                         style={{ width: `${(item.earnings / Math.max(...earningsData.map(d => d.earnings))) * 100}%` }}
@@ -277,14 +277,14 @@ const Analytics = () => {
             <div className="space-y-3">
               {earningsData.slice(-7).map((item, index) => (
                 <div key={index} className="flex items-center justify-between">
-                  <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate max-w-[100px] sm:max-w-none">
+                  <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate w-16 sm:w-auto">
                     {timeframe === "year" ? item.date : new Date(item.date).toLocaleDateString()}
                   </span>
-                  <div className="flex items-center space-x-2 sm:space-x-4 flex-1 justify-end">
-                    <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                  <div className="flex items-center space-x-1 sm:space-x-2 flex-1 justify-end min-w-0">
+                    <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">
                       {item.bookings}
                     </span>
-                    <div className="w-16 sm:w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2 flex-shrink-0">
+                    <div className="w-12 sm:w-16 lg:w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2 flex-shrink-0">
                       <div 
                         className="bg-blue-600 h-2 rounded-full"
                         style={{ width: `${(item.bookings / Math.max(...earningsData.map(d => d.bookings))) * 100}%` }}
@@ -298,20 +298,20 @@ const Analytics = () => {
         </div>
 
         {/* Performance Insights */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
             <div className="flex items-center space-x-3 mb-4">
               <Target className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Performance Goals</h3>
+              <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 dark:text-white truncate">Performance Goals</h3>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Monthly Target</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">KSh 2,000</span>
+                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Monthly Target</span>
+                <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">KSh 2,000</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Current Progress</span>
-                <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Current Progress</span>
+                <span className="text-xs sm:text-sm font-medium text-green-600 dark:text-green-400 whitespace-nowrap">
                   {Math.round(((stats.monthlyEarnings || 0) / 1000) * 100)}%
                 </span>
               </div>
@@ -327,24 +327,24 @@ const Analytics = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
             <div className="flex items-center space-x-3 mb-4">
               <Award className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Achievements</h3>
+              <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 dark:text-white truncate">Achievements</h3>
             </div>
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
-                <span className="text-sm text-gray-600 dark:text-gray-400">
+                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
                   {stats.bookings >= 10 ? "✓" : "○"} 10+ Bookings
                 </span>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
-                <span className="text-sm text-gray-600 dark:text-gray-400">
+                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
                   {stats.rating >= 4.5 ? "✓" : "○"} 4.5+ Rating
                 </span>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
-                <span className="text-sm text-gray-600 dark:text-gray-400">
+                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
                   {(stats.monthlyEarnings || 0) >= 1000 ? "✓" : "○"} KSh 1,000+ Earnings
                 </span>
               </div>
@@ -354,22 +354,22 @@ const Analytics = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
             <div className="flex items-center space-x-3 mb-4">
               <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400 flex-shrink-0" />
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Quick Stats</h3>
+              <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 dark:text-white truncate">Quick Stats</h3>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Avg. Booking Value</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Avg. Booking Value</span>
+                <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
                   ${stats.bookings > 0 ? Math.round((stats.monthlyEarnings || 0) / stats.bookings) : 0}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Response Time</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">2.3 hrs</span>
+                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Response Time</span>
+                <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">2.3 hrs</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Completion Rate</span>
-                <span className="text-sm font-medium text-green-600 dark:text-green-400">98%</span>
+                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Completion Rate</span>
+                <span className="text-xs sm:text-sm font-medium text-green-600 dark:text-green-400 whitespace-nowrap">98%</span>
               </div>
             </div>
           </div>
@@ -387,7 +387,7 @@ const Analytics = () => {
                   <div className="flex items-center space-x-3 flex-1 min-w-0">
                     <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                     <div className="min-w-0">
-                      <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base truncate">
+                      <p className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm lg:text-base truncate">
                         Booking #{booking.bookingNumber}
                       </p>
                       <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
@@ -396,7 +396,7 @@ const Analytics = () => {
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
+                    <p className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm lg:text-base">
                       ${booking.pricing?.totalAmount || 0}
                     </p>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
