@@ -129,9 +129,7 @@ const CollectorOnboarding = () => {
     setLoading(true)
     try {
       // Send as JSON instead of FormData
-      const { documents, ...submitData } = formData; // Remove documents field entirely
-
-      // Log what's being sent
+      const { documents, ...submitData } = formData; 
       console.log("Form data being sent:", submitData)
 
       const response = await api.post("/users/complete-onboarding", submitData, {

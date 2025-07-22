@@ -206,7 +206,6 @@ const createBooking = async (req, res) => {
       message: 'Booking created successfully',
       data: {
         booking,
-        // Optionally include subscriptionInfo if you want
       }
     });
   } catch (error) {
@@ -241,7 +240,6 @@ const getUserBookings = async (req, res) => {
     // Filter by user role
     if (req.user.role === 'admin') {
       // Admin can see all bookings
-      // No additional query filters needed
     } else if (req.user.role === 'service_provider') {
       query.serviceProvider = req.user._id;
     } else {

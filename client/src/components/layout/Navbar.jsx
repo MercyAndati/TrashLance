@@ -162,11 +162,19 @@ const Navbar = ({ onMenuClick }) => {
                   
                   {/* Notifications dropdown */}
                   {showNotifications && (
-                    <div className="absolute right-0 sm:right-0 sm:left-auto left-1/2 sm:transform-none transform -translate-x-1/2 mt-2 w-80 sm:w-80 w-[calc(100vw-2rem)] max-w-sm bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
+                    <div className="fixed sm:absolute inset-0 sm:inset-auto sm:right-0 sm:left-auto sm:transform-none sm:mt-2 sm:w-80 w-full max-w-sm bg-white dark:bg-gray-800 rounded-lg sm:rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 sm:max-h-96 max-h-[80vh] overflow-y-auto"
+                      style={{
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: 'calc(100% - 2rem)',
+                        maxWidth: '400px'
+                      }}
+                    >
                       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h3>
                       </div>
-                      <div className="max-h-96 overflow-y-auto">
+                      <div className="overflow-y-auto" style={{ maxHeight: 'calc(80vh - 120px)' }}>
                         {notifications.length === 0 ? (
                           <div className="p-4 text-center text-gray-500 dark:text-gray-400">No notifications</div>
                         ) : (
@@ -186,10 +194,12 @@ const Navbar = ({ onMenuClick }) => {
                                 }
                               }}
                             >
-                              <h4 className="font-medium text-gray-900 dark:text-white text-sm">
+                              <h4 className="font-medium text-gray-900 dark:text-white text-sm truncate">
                                 {notification.title}
                               </h4>
-                              <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">{notification.message}</p>
+                              <p className="text-gray-600 dark:text-gray-400 text-sm mt-1 break-words">
+                                {notification.message}
+                              </p>
                               <p className="text-gray-500 dark:text-gray-500 text-xs mt-2">
                                 {new Date(notification.createdAt).toLocaleDateString()}
                               </p>

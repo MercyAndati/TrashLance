@@ -27,8 +27,6 @@ export const NotificationProvider = ({ children }) => {
       fetchNotifications()
 
       // Initialize socket connection
-      // Ensure the URL is just the base URL (e.g., https://trashlance.onrender.com)
-      // and include withCredentials and transports options.
       const socketUrl = import.meta.env.VITE_API_URL
         ? import.meta.env.VITE_API_URL.replace("/api", "") // Remove /api if present
         : "http://localhost:5000"

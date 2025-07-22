@@ -5,6 +5,6 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   plugins: [tailwindcss(), react()],
   css: {
-    devSourcemap: true, // Fixes the error
+    devSourcemap: true,
   },
 });

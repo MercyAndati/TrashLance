@@ -28,7 +28,6 @@ const notificationSchema = new mongoose.Schema({
       "reminder",
       "account_verified",
       "new_report",
-      // add any other types you use in your codebase
     ],
     required: true
   },
@@ -124,7 +123,7 @@ notificationSchema.statics.createAndSend = async function(notificationData) {
   const notification = new this(notificationData);
   await notification.save();
   
-  // Here you would integrate with your notification service
+  // TODO: Here you would integrate with your notification service
   // to send via different channels (email, SMS, push, etc.)
   
   return notification;

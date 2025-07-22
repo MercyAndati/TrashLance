@@ -230,9 +230,6 @@ const getLeaderboard = async (req, res) => {
     } else {
       sort = { points: -1 };
     }
-
-    // TODO: Add timeframe filtering if needed
-
     // Fetch leaderboard
     const leaderboard = await User.find(query)
       .sort(sort)

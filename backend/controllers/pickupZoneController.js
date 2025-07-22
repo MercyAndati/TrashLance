@@ -56,8 +56,6 @@ const searchZonesByLocation = async (req, res) => {
     const longitude = Number.parseFloat(lng)
     const maxDistance = Number.parseFloat(radius) * 1000 // Convert km to meters
 
-    // For now, let's do a simple search without complex geospatial queries
-    // This will work even if we don't have zones set up yet
     const zones = await PickupZone.find({
       isActive: true,
     }).limit(10)

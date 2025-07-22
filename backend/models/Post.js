@@ -117,7 +117,7 @@ const postSchema = new mongoose.Schema(
     },
     reportNumber: {
       type: String,
-      unique: true, // This already creates a unique index
+      unique: true,
     },
     views: {
       type: Number,
@@ -134,7 +134,6 @@ postSchema.index({ "location.coordinates": "2dsphere" })
 postSchema.index({ status: 1, createdAt: -1 })
 postSchema.index({ author: 1, createdAt: -1 })
 postSchema.index({ category: 1, severity: 1 })
-// REMOVE THIS LINE: postSchema.index({ reportNumber: 1 })
 
 // Add pagination plugin
 postSchema.plugin(mongoosePaginate)

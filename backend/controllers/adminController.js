@@ -467,7 +467,7 @@ const generateTimeSeriesData = async (timeframe, startDate, endDate) => {
         reports
       });
     }
-  } else { // year
+  } else { 
     for (let i = 11; i >= 0; i--) {
       const date = new Date();
       date.setMonth(date.getMonth() - i);

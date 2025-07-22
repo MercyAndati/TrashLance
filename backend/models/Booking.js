@@ -3,7 +3,7 @@ const bookingSchema = new mongoose.Schema(
   {
     bookingNumber: {
       type: String,
-      unique: true, // This already creates a unique index
+      unique: true, 
       required: true,
     },
     customer: {
@@ -189,8 +189,6 @@ const bookingSchema = new mongoose.Schema(
 bookingSchema.index({ customer: 1, createdAt: -1 })
 bookingSchema.index({ serviceProvider: 1, scheduledDate: 1 })
 bookingSchema.index({ status: 1, scheduledDate: 1 })
-// REMOVE THIS LINE: bookingSchema.index({ bookingNumber: 1 });
-
 // Pre-save middleware to generate booking number
 bookingSchema.pre("save", async function (next) {
   if (!this.bookingNumber) {

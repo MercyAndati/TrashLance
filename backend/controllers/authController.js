@@ -371,7 +371,6 @@ const getCurrentUser = async (req, res) => {
 // Logout (client-side token removal, but we can track it)
 const logout = async (req, res) => {
   try {
-    // In a more sophisticated setup, you might want to blacklist the token
     // For now, we'll just send a success response
     res.json({
       success: true,

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams, Link } from "react-router-dom" // React Router imports
+import { useParams, Link } from "react-router-dom" 
 import { Mail, Phone, MapPin, Star, Calendar, Package, Edit3, Camera, Shield, Award, Clock } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 import api from "../services/api"

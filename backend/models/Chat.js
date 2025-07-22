@@ -112,25 +112,13 @@ const chatSchema = new mongoose.Schema(
   },
 )
 
-// Existing indexes (keep these)
+
 chatSchema.index({ "participants.user": 1 })
-// REMOVE THIS LINE: chatSchema.index({ relatedBooking: 1 })
 chatSchema.index({ lastActivity: -1 })
 chatSchema.index({ "messages.sentAt": -1 })
 
-// --- IMPORTANT: Drop the old problematic unique index if it exists in your DB ---
-// You might need to manually drop it in your MongoDB shell if it was created:
-// db.chats.dropIndex("participants.user_1_chatType_1_relatedBooking_1")
-// (The exact name might vary, check with db.chats.getIndexes())
-
-// --- NEW INDEX DEFINITION FOR sortedParticipantIds ---
-// Drop the old sortedParticipantIds_1 index first if it exists!
-// db.chats.dropIndex("sortedParticipantIds_1")
-// REMOVED THE sortedParticipantIds INDEX DEFINITION AS IT WAS CAUSING ISSUES
-// AND RELYING ON sortedParticipantIdsString FOR UNIQUENESS.
 
 // New unique index for booking chats
-// Ensures only one active chat exists for a specific booking.
 chatSchema.index(
   { relatedBooking: 1 },
   {
