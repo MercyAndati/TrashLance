@@ -155,64 +155,73 @@ const Chat = () => {
     }
   }, [])
 
-  const fetchConversations = async () => {
-    try {
-      setLoading(true)
-      const response = await api.get("/chats")
-      const chats = response.data.data?.chats || []
-      setConversations(chats)
-      
-      // If a target user is specified, try to find or create a chat with them
-      if (targetUserId) {
-        const existingChat = chats.find(chat => 
-          chat.participants.some(p => p.user._id === targetUserId)
-        )
-        if (existingChat) {
-          setActiveConversation(existingChat)
-        } else {
-          // Create a new chat with the target user
-          await startChatWithUser(targetUserId)
-        }
-      } else if (chats.length > 0 && !activeConversation) {
-        setActiveConversation(chats[0])
+const fetchConversations = async () => {
+  try {
+    setLoading(true)
+    const response = await api.get("/chats")
+    const chats = response.data.data?.chats || []
+    setConversations(chats)
+    
+    if (targetUserId) {
+      const existingChat = chats.find(chat => 
+        chat.participants.some(p => p.user._id === targetUserId)
+      )
+      if (existingChat) {
+        setActiveConversation(existingChat)
+      } else if (!creatingChatRef.current) {
+        await startChatWithUser(targetUserId)
       }
-    } catch (error) {
-      console.error("Failed to fetch conversations:", error)
-    } finally {
-      setLoading(false)
+    } else if (chats.length > 0 && !activeConversation) {
+      setActiveConversation(chats[0])
     }
+  } catch (error) {
+    console.error("Failed to fetch conversations:", error)
+  } finally {
+    setLoading(false)
   }
+}
 
-  const startChatWithUser = async (userId) => {
-    // Prevent multiple simultaneous calls
-    if (creatingChatRef.current) {
-      console.log("Chat creation already in progress, skipping...")
+const startChatWithUser = async (userId) => {
+  if (creatingChatRef.current) {
+    console.log("Chat creation already in progress, skipping...")
+    return
+  }
+  
+  try {
+    creatingChatRef.current = true
+    
+    // First check if we already have this chat in our local state
+    const existingChat = conversations.find(chat => 
+      chat.participants.some(p => p.user._id === userId)
+    )
+    
+    if (existingChat) {
+      setActiveConversation(existingChat)
       return
     }
     
-    try {
-      creatingChatRef.current = true
-      console.log("Starting chat with user:", userId)
-      
-      const response = await api.post("/chats/start", {
-        providerId: userId
-      })
-      const newChat = response.data.data.chat
-      console.log("Chat created successfully:", newChat._id)
-      
-      updateConversationsList(newChat)
-      setActiveConversation(newChat)
-      
-      // Join chat room for real-time updates
-      if (socket) {
-        socket.emit("join-chat", newChat._id)
-      }
-    } catch (error) {
-      console.error("Failed to start chat:", error)
-    } finally {
-      creatingChatRef.current = false
+    // If not found locally, try to create
+    const response = await api.post("/chats/start", {
+      providerId: userId
+    })
+    
+    const newChat = response.data.data.chat
+    updateConversationsList(newChat)
+    setActiveConversation(newChat)
+    
+    if (socket) {
+      socket.emit("join-chat", newChat._id)
     }
+  } catch (error) {
+    console.error("Failed to start chat:", error)
+    // If error is 500 (duplicate), try to fetch existing chats
+    if (error.response?.status === 500) {
+      await fetchConversations()
+    }
+  } finally {
+    creatingChatRef.current = false
   }
+}
 
   const fetchMessages = async (conversationId) => {
     try {
