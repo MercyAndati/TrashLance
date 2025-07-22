@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Send, Search, Phone, Video, MoreVertical, Paperclip, Smile, Trash2, ArrowLeft, Menu } from "lucide-react"
+import { Send, Search, Phone, Video, MoreVertical, Paperclip, Smile, Trash2 } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 import { useSearchParams } from "react-router-dom"
 import api from "../services/api"
@@ -19,7 +19,6 @@ const Chat = () => {
   const [sendingMessage, setSendingMessage] = useState(false)
   const [deletingMessage, setDeletingMessage] = useState(null)
   const [socket, setSocket] = useState(null)
-  const [showSidebar, setShowSidebar] = useState(false)
   const messagesEndRef = useRef(null)
   const fetchTimeoutRef = useRef(null)
   const sentMessagesRef = useRef(new Set()) // Track sent messages to prevent duplicates
@@ -31,15 +30,7 @@ const Chat = () => {
 
   // Initialize Socket.IO connection
   useEffect(() => {
-    const newSocket = io(
-      import.meta.env.PROD
-        ? "https://trashlance.onrender.com"
-        : "http://localhost:5000",
-      {
-        transports: ["websocket", "polling"],
-        withCredentials: true,
-      }
-    )
+    const newSocket = io("http://localhost:5000")
     setSocket(newSocket)
 
     // Join user's room for notifications
@@ -50,33 +41,31 @@ const Chat = () => {
     return () => newSocket.close()
   }, [user])
 
-  // Optimized conversation update without full reload
-  const updateConversationsList = useCallback((newChat) => {
-    setConversations(prev => {
-      const existingIndex = prev.findIndex(chat => chat._id === newChat._id)
-      if (existingIndex >= 0) {
-        // Update existing chat
-        const updated = [...prev]
-        updated[existingIndex] = newChat
-        return updated
-      } else {
-        // Add new chat to the beginning
-        return [newChat, ...prev]
-      }
-    })
+  // Debounced fetch conversations
+  const debouncedFetchConversations = useCallback(() => {
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current)
+    }
+    fetchTimeoutRef.current = setTimeout(() => {
+      fetchConversations()
+    }, 300)
   }, [])
 
-  // Socket event listeners - optimized to avoid reloads
+
+
+  // Socket event listeners
   useEffect(() => {
     if (!socket) return
 
     // Listen for new messages
     socket.on("new-message", (data) => {
       // Only process if this is for the active conversation and not from current user
-      if (data.chatId === activeConversation?._id && data.message.sender !== user._id) {
+      if (data.chatId === activeConversation?._id && data.senderId !== user._id) {
+        // Check if we already have this message to prevent duplicates
         setMessages(prev => {
           const messageExists = prev.some(msg => msg._id === data.message._id)
           if (!messageExists) {
+            // Mark as read since it's from another user (with delay to avoid UI jumps)
             setTimeout(() => {
               markMessagesAsRead(data.chatId, [data.message._id])
             }, 1000)
@@ -84,21 +73,19 @@ const Chat = () => {
           }
           return prev
         })
-      } else {
-        // Update conversation unread count without full reload
-        setConversations(prev => 
-          prev.map(conv => 
-            conv._id === data.chatId 
-              ? { ...conv, unreadCount: (conv.unreadCount || 0) + 1 }
-              : conv
-          )
-        )
+      }
+      // Update conversations list only if not currently in a chat
+      if (!activeConversation) {
+        debouncedFetchConversations()
       }
     })
 
-    // Listen for new chat notifications - optimized
+    // Listen for new chat notifications
     socket.on("new-chat", (data) => {
-      updateConversationsList(data.chat)
+      // Only update conversations if we're not currently in a chat
+      if (!activeConversation) {
+        debouncedFetchConversations()
+      }
     })
 
     // Listen for message deletion
@@ -113,7 +100,7 @@ const Chat = () => {
       socket.off("new-chat")
       socket.off("message-deleted")
     }
-  }, [socket, activeConversation, updateConversationsList, user._id])
+  }, [socket, activeConversation, debouncedFetchConversations, user._id])
 
   useEffect(() => {
     fetchConversations()
@@ -126,10 +113,6 @@ const Chat = () => {
       setTimeout(() => {
         markMessagesAsRead(activeConversation._id)
       }, 2000)
-      // Close sidebar on mobile when conversation is selected
-      if (window.innerWidth < 768) {
-        setShowSidebar(false)
-      }
     }
   }, [activeConversation])
 
@@ -155,77 +138,67 @@ const Chat = () => {
     }
   }, [])
 
-const fetchConversations = async () => {
-  try {
-    setLoading(true)
-    const response = await api.get("/chats")
-    const chats = response.data.data?.chats || []
-    setConversations(chats)
-    
-    if (targetUserId) {
-      const existingChat = chats.find(chat => 
-        chat.participants.some(p => p.user._id === targetUserId)
-      )
-      if (existingChat) {
-        setActiveConversation(existingChat)
-      } else if (!creatingChatRef.current) {
-        await startChatWithUser(targetUserId)
+  const fetchConversations = async () => {
+    try {
+      setLoading(true)
+      const response = await api.get("/chats")
+      const chats = response.data.data?.chats || []
+      setConversations(chats)
+      
+      // If a target user is specified, try to find or create a chat with them
+      if (targetUserId) {
+        const existingChat = chats.find(chat => 
+          chat.participants.some(p => p.user._id === targetUserId)
+        )
+        if (existingChat) {
+          setActiveConversation(existingChat)
+        } else {
+          // Create a new chat with the target user
+          await startChatWithUser(targetUserId)
+        }
+      } else if (chats.length > 0) {
+        setActiveConversation(chats[0])
       }
-    } else if (chats.length > 0 && !activeConversation) {
-      setActiveConversation(chats[0])
+    } catch (error) {
+      console.error("Failed to fetch conversations:", error)
+    } finally {
+      setLoading(false)
     }
-  } catch (error) {
-    console.error("Failed to fetch conversations:", error)
-  } finally {
-    setLoading(false)
   }
-}
 
-const startChatWithUser = async (userId) => {
-  if (creatingChatRef.current) {
-    console.log("Chat creation already in progress, skipping...")
-    return
-  }
-  
-  try {
-    creatingChatRef.current = true
-    
-    // First check if we already have this chat in our local state
-    const existingChat = conversations.find(chat => 
-      chat.participants.some(p => p.user._id === userId)
-    )
-    
-    if (existingChat) {
-      setActiveConversation(existingChat)
+  const startChatWithUser = async (userId) => {
+    // Prevent multiple simultaneous calls
+    if (creatingChatRef.current) {
+      console.log("Chat creation already in progress, skipping...")
       return
     }
     
-    // If not found locally, try to create
-    const response = await api.post("/chats/start", {
-      providerId: userId
-    })
-    
-    const newChat = response.data.data.chat
-    updateConversationsList(newChat)
-    setActiveConversation(newChat)
-    
-    if (socket) {
-      socket.emit("join-chat", newChat._id)
+    try {
+      creatingChatRef.current = true
+      console.log("Starting chat with user:", userId)
+      
+      const response = await api.post("/chats/start", {
+        providerId: userId
+      })
+      const newChat = response.data.data.chat
+      console.log("Chat created successfully:", newChat._id)
+      
+      setConversations(prev => [newChat, ...prev])
+      setActiveConversation(newChat)
+      
+      // Join chat room for real-time updates
+      if (socket) {
+        socket.emit("join-chat", newChat._id)
+      }
+    } catch (error) {
+      console.error("Failed to start chat:", error)
+    } finally {
+      creatingChatRef.current = false
     }
-  } catch (error) {
-    console.error("Failed to start chat:", error)
-    // If error is 500 (duplicate), try to fetch existing chats
-    if (error.response?.status === 500) {
-      await fetchConversations()
-    }
-  } finally {
-    creatingChatRef.current = false
   }
-}
 
   const fetchMessages = async (conversationId) => {
     try {
-      // Don't show loading spinner for message fetch to avoid visible reload
       const response = await api.get(`/chats/${conversationId}/messages`)
       setMessages(response.data.data?.messages || [])
       
@@ -241,14 +214,10 @@ const startChatWithUser = async (userId) => {
   const markMessagesAsRead = async (chatId, messageIds = []) => {
     try {
       await api.patch(`/chats/${chatId}/read`, { messageIds })
-      // Update conversation unread count without full reload
-      setConversations(prev => 
-        prev.map(conv => 
-          conv._id === chatId 
-            ? { ...conv, unreadCount: 0 }
-            : conv
-        )
-      )
+      // Update conversations to reflect read status only if not in active chat
+      if (!activeConversation || activeConversation._id !== chatId) {
+        debouncedFetchConversations()
+      }
     } catch (error) {
       console.error("Failed to mark messages as read:", error)
       // Don't throw error, just log it to prevent UI issues
@@ -269,16 +238,26 @@ const startChatWithUser = async (userId) => {
       })
 
       const newMessageData = response.data.data.message
-      // Optimistically add to messages for sender
+      
+      // Add to sent messages tracking to prevent duplicates
+      sentMessagesRef.current.add(newMessageData._id)
+      
+      // Add message to local state immediately
       setMessages((prev) => [...prev, newMessageData])
+      
+      // Scroll to bottom after sending own message (use requestAnimationFrame for smoother experience)
       requestAnimationFrame(() => {
         scrollToBottom()
       })
+      
+      // Clear from tracking after a delay
       setTimeout(() => {
         sentMessagesRef.current.delete(newMessageData._id)
       }, 5000)
-      // No need to fetchMessages or reload
+      
     } catch (error) {
+      console.error("Failed to send message:", error)
+      // Restore message if send failed
       setNewMessage(messageContent)
     } finally {
       setSendingMessage(false)
@@ -343,11 +322,6 @@ const startChatWithUser = async (userId) => {
     return conversation.participants.find((p) => p.user._id !== user._id)
   }
 
-  const handleBackToConversations = () => {
-    setActiveConversation(null)
-    setShowSidebar(true)
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -357,37 +331,13 @@ const startChatWithUser = async (userId) => {
   }
 
   return (
-    <div className="h-screen bg-gray-50 dark:bg-gray-900 flex overflow-hidden relative">
-      {/* Mobile Overlay */}
-      {showSidebar && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
-          onClick={() => setShowSidebar(false)}
-        />
-      )}
-
+    <div className="h-screen bg-gray-50 dark:bg-gray-900 flex overflow-hidden">
       {/* Conversations List */}
-      <div className={`
-        ${showSidebar ? 'translate-x-0' : '-translate-x-full'} 
-        md:translate-x-0 md:static fixed top-0 left-0 z-50
-        w-full md:w-1/3 lg:w-1/4 xl:w-1/3 
-        bg-white dark:bg-gray-800 
-        border-r border-gray-200 dark:border-gray-700 
-        flex flex-col h-full
-        transition-transform duration-300 ease-in-out
-      `}>
+      <div className="w-1/3 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
         {/* Header */}
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Messages</h2>
-            <button 
-              onClick={() => setShowSidebar(false)}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              <ArrowLeft className="h-5 w-5 text-gray-500" />
-            </button>
-          </div>
-          <div className="relative">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Messages</h2>
+          <div className="mt-3 relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-4 w-4 text-gray-400" />
             </div>
@@ -428,7 +378,7 @@ const startChatWithUser = async (userId) => {
                     <img
                       src={otherParticipant?.user?.avatar || "/TrashLance.png"}
                       alt={otherParticipant?.user?.username}
-                      className="w-12 h-12 rounded-full object-cover"
+                      className="w-12 h-12 rounded-full"
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
@@ -441,9 +391,6 @@ const startChatWithUser = async (userId) => {
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">
-                        {otherParticipant?.user?.role?.replace("_", " ")}
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -454,40 +401,28 @@ const startChatWithUser = async (userId) => {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col h-full min-w-0">
+      <div className="flex-1 flex flex-col h-full">
         {activeConversation ? (
           <>
             {/* Chat Header */}
             <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <button
-                    onClick={handleBackToConversations}
-                    className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 -ml-2"
-                  >
-                    <ArrowLeft className="h-5 w-5 text-gray-500" />
-                  </button>
-                  <button
-                    onClick={() => setShowSidebar(true)}
-                    className="hidden md:block lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 -ml-2"
-                  >
-                    <Menu className="h-5 w-5 text-gray-500" />
-                  </button>
                   <img
                     src={getOtherParticipant(activeConversation)?.user?.avatar || "/TrashLance.png"}
                     alt={getOtherParticipant(activeConversation)?.user?.username}
-                    className="w-10 h-10 rounded-full object-cover"
+                    className="w-10 h-10 rounded-full"
                   />
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white truncate">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">
                       {getOtherParticipant(activeConversation)?.user?.username}
                     </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       {getOtherParticipant(activeConversation)?.user?.role?.replace("_", " ")}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-1">
+                <div className="flex items-center space-x-2">
                   <button className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
                     <Phone className="w-5 h-5" />
                   </button>
@@ -502,20 +437,20 @@ const startChatWithUser = async (userId) => {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 bg-gray-50 dark:bg-gray-900 min-h-0" ref={messagesContainerRef}>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900 min-h-0" ref={messagesContainerRef}>
               {messages.map((message, index) => (
                 <div
                   key={`${message._id}-${message.sender._id}-${index}`}
                   className={`flex ${message.sender._id === user._id ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[85%] sm:max-w-xs lg:max-w-md px-3 md:px-4 py-2 rounded-2xl relative group ${
+                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg relative group ${
                       message.sender._id === user._id
-                        ? "bg-green-500 text-white rounded-br-md"
-                        : "bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-bl-md shadow-sm"
+                        ? "bg-green-500 text-white"
+                        : "bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                     }`}
                   >
-                    <p className="text-sm leading-relaxed">{message.content}</p>
+                    <p className="text-sm">{message.content}</p>
                     <div className="flex items-center justify-between mt-1">
                       <p
                         className={`text-xs ${
@@ -546,7 +481,7 @@ const startChatWithUser = async (userId) => {
             </div>
 
             {/* Message Input */}
-            <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 md:p-4">
+            <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4">
               <form onSubmit={sendMessage} className="flex items-center space-x-2">
                 <button
                   type="button"
@@ -565,13 +500,13 @@ const startChatWithUser = async (userId) => {
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type a message..."
-                  className="flex-1 px-3 md:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   disabled={sendingMessage}
                 />
                 <button
                   type="submit"
                   disabled={!newMessage.trim() || sendingMessage}
-                  className="p-2 bg-green-600 text-white rounded-full hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {sendingMessage ? <LoadingSpinner size="sm" /> : <Send className="w-5 h-5" />}
                 </button>
@@ -580,16 +515,10 @@ const startChatWithUser = async (userId) => {
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-            <div className="text-center px-4">
-              <button
-                onClick={() => setShowSidebar(true)}
-                className="md:hidden mb-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                View Conversations
-              </button>
+            <div className="text-center">
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Select a conversation</h3>
               <p className="text-gray-500 dark:text-gray-400">
-                Choose a conversation to start messaging
+                Choose a conversation from the sidebar to start messaging
               </p>
             </div>
           </div>
