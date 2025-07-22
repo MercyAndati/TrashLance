@@ -1,5 +1,4 @@
 "use client"
-
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Send, Search, Phone, Video, MoreVertical, Paperclip, Smile, Trash2, ArrowLeft, Menu } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
@@ -31,15 +30,13 @@ const Chat = () => {
 
   // Initialize Socket.IO connection
   useEffect(() => {
-    const newSocket = io(
-      import.meta.env.PROD
-        ? "https://trashlance.onrender.com"
-        : "http://localhost:5000",
-      {
-        transports: ["websocket", "polling"],
-        withCredentials: true,
-      }
-    )
+    // Ensure the URL is just the base URL (e.g., https://trashlance.onrender.com)
+    const socketUrl = import.meta.env.PROD ? "https://trashlance.onrender.com" : "http://localhost:5000"
+
+    const newSocket = io(socketUrl, {
+      transports: ["websocket", "polling"],
+      withCredentials: true,
+    })
     setSocket(newSocket)
 
     // Join user's room for notifications
@@ -47,13 +44,24 @@ const Chat = () => {
       newSocket.emit("join", user._id)
     }
 
+    // Add debug listeners for chat.jsx as well
+    newSocket.on("connect", () => {
+      console.log("Chat Socket connected:", newSocket.id)
+    })
+    newSocket.on("connect_error", (error) => {
+      console.error("Chat Socket connection error:", error)
+    })
+    newSocket.on("disconnect", (reason) => {
+      console.log("Chat Socket disconnected:", reason)
+    })
+
     return () => newSocket.close()
   }, [user])
 
   // Optimized conversation update without full reload
   const updateConversationsList = useCallback((newChat) => {
-    setConversations(prev => {
-      const existingIndex = prev.findIndex(chat => chat._id === newChat._id)
+    setConversations((prev) => {
+      const existingIndex = prev.findIndex((chat) => chat._id === newChat._id)
       if (existingIndex >= 0) {
         // Update existing chat
         const updated = [...prev]
@@ -74,8 +82,8 @@ const Chat = () => {
     socket.on("new-message", (data) => {
       // Only process if this is for the active conversation and not from current user
       if (data.chatId === activeConversation?._id && data.message.sender !== user._id) {
-        setMessages(prev => {
-          const messageExists = prev.some(msg => msg._id === data.message._id)
+        setMessages((prev) => {
+          const messageExists = prev.some((msg) => msg._id === data.message._id)
           if (!messageExists) {
             setTimeout(() => {
               markMessagesAsRead(data.chatId, [data.message._id])
@@ -86,12 +94,8 @@ const Chat = () => {
         })
       } else {
         // Update conversation unread count without full reload
-        setConversations(prev => 
-          prev.map(conv => 
-            conv._id === data.chatId 
-              ? { ...conv, unreadCount: (conv.unreadCount || 0) + 1 }
-              : conv
-          )
+        setConversations((prev) =>
+          prev.map((conv) => (conv._id === data.chatId ? { ...conv, unreadCount: (conv.unreadCount || 0) + 1 } : conv)),
         )
       }
     })
@@ -104,7 +108,7 @@ const Chat = () => {
     // Listen for message deletion
     socket.on("message-deleted", (data) => {
       if (data.chatId === activeConversation?._id) {
-        setMessages(prev => prev.filter(msg => msg._id !== data.messageId))
+        setMessages((prev) => prev.filter((msg) => msg._id !== data.messageId))
       }
     })
 
@@ -138,7 +142,7 @@ const Chat = () => {
     if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1]
       const isFromCurrentUser = lastMessage.sender === user._id
-      
+
       // Only auto-scroll if the last message is from current user
       if (isFromCurrentUser) {
         scrollToBottom()
@@ -161,12 +165,10 @@ const Chat = () => {
       const response = await api.get("/chats")
       const chats = response.data.data?.chats || []
       setConversations(chats)
-      
+
       // If a target user is specified, try to find or create a chat with them
       if (targetUserId) {
-        const existingChat = chats.find(chat => 
-          chat.participants.some(p => p.user._id === targetUserId)
-        )
+        const existingChat = chats.find((chat) => chat.participants.some((p) => p.user._id === targetUserId))
         if (existingChat) {
           setActiveConversation(existingChat)
         } else {
@@ -189,20 +191,20 @@ const Chat = () => {
       console.log("Chat creation already in progress, skipping...")
       return
     }
-    
+
     try {
       creatingChatRef.current = true
       console.log("Starting chat with user:", userId)
-      
+
       const response = await api.post("/chats/start", {
-        providerId: userId
+        providerId: userId,
       })
       const newChat = response.data.data.chat
       console.log("Chat created successfully:", newChat._id)
-      
+
       updateConversationsList(newChat)
       setActiveConversation(newChat)
-      
+
       // Join chat room for real-time updates
       if (socket) {
         socket.emit("join-chat", newChat._id)
@@ -219,7 +221,7 @@ const Chat = () => {
       // Don't show loading spinner for message fetch to avoid visible reload
       const response = await api.get(`/chats/${conversationId}/messages`)
       setMessages(response.data.data?.messages || [])
-      
+
       // Join chat room for real-time updates
       if (socket) {
         socket.emit("join-chat", conversationId)
@@ -233,13 +235,7 @@ const Chat = () => {
     try {
       await api.patch(`/chats/${chatId}/read`, { messageIds })
       // Update conversation unread count without full reload
-      setConversations(prev => 
-        prev.map(conv => 
-          conv._id === chatId 
-            ? { ...conv, unreadCount: 0 }
-            : conv
-        )
-      )
+      setConversations((prev) => prev.map((conv) => (conv._id === chatId ? { ...conv, unreadCount: 0 } : conv)))
     } catch (error) {
       console.error("Failed to mark messages as read:", error)
       // Don't throw error, just log it to prevent UI issues
@@ -253,12 +249,10 @@ const Chat = () => {
     const messageContent = newMessage.trim()
     setSendingMessage(true)
     setNewMessage("")
-
     try {
       const response = await api.post(`/chats/${activeConversation._id}/messages`, {
         content: messageContent,
       })
-
       const newMessageData = response.data.data.message
       // Optimistically add to messages for sender
       setMessages((prev) => [...prev, newMessageData])
@@ -278,19 +272,18 @@ const Chat = () => {
 
   const deleteMessage = async (messageId) => {
     if (!activeConversation || deletingMessage === messageId) return
-
     setDeletingMessage(messageId)
     try {
       await api.delete(`/chats/${activeConversation._id}/messages/${messageId}`)
-      
+
       // Remove message from local state
-      setMessages(prev => prev.filter(msg => msg._id !== messageId))
-      
+      setMessages((prev) => prev.filter((msg) => msg._id !== messageId))
+
       // Emit deletion to other users via socket
       if (socket) {
         socket.emit("delete-message", {
           chatId: activeConversation._id,
-          messageId: messageId
+          messageId: messageId,
         })
       }
     } catch (error) {
@@ -304,7 +297,7 @@ const Chat = () => {
     if (messagesEndRef.current && messagesContainerRef.current) {
       const container = messagesContainerRef.current
       const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100
-      
+
       // Only auto-scroll if user is already near bottom or if it's a new message from current user
       if (isAtBottom) {
         // Use requestAnimationFrame for smoother scrolling
@@ -319,10 +312,10 @@ const Chat = () => {
     if (!date) return ""
     const messageDate = new Date(date)
     if (isNaN(messageDate.getTime())) return ""
-    
+
     const now = new Date()
     const isToday = messageDate.toDateString() === now.toDateString()
-    
+
     if (isToday) {
       return messageDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     } else {
@@ -351,27 +344,25 @@ const Chat = () => {
     <div className="h-screen bg-gray-50 dark:bg-gray-900 flex overflow-hidden relative">
       {/* Mobile Overlay */}
       {showSidebar && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
-          onClick={() => setShowSidebar(false)}
-        />
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" onClick={() => setShowSidebar(false)} />
       )}
-
       {/* Conversations List */}
-      <div className={`
-        ${showSidebar ? 'translate-x-0' : '-translate-x-full'} 
+      <div
+        className={`
+        ${showSidebar ? "translate-x-0" : "-translate-x-full"}
         md:translate-x-0 md:static fixed top-0 left-0 z-50
-        w-full md:w-1/3 lg:w-1/4 xl:w-1/3 
-        bg-white dark:bg-gray-800 
-        border-r border-gray-200 dark:border-gray-700 
+        w-full md:w-1/3 lg:w-1/4 xl:w-1/3
+        bg-white dark:bg-gray-800
+        border-r border-gray-200 dark:border-gray-700
         flex flex-col h-full
         transition-transform duration-300 ease-in-out
-      `}>
+      `}
+      >
         {/* Header */}
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Messages</h2>
-            <button 
+            <button
               onClick={() => setShowSidebar(false)}
               className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
             >
@@ -389,7 +380,6 @@ const Chat = () => {
             />
           </div>
         </div>
-
         {/* Conversations */}
         <div className="flex-1 overflow-y-auto">
           {conversations.length === 0 ? (
@@ -443,7 +433,6 @@ const Chat = () => {
           )}
         </div>
       </div>
-
       {/* Chat Area */}
       <div className="flex-1 flex flex-col h-full min-w-0">
         {activeConversation ? (
@@ -491,9 +480,11 @@ const Chat = () => {
                 </div>
               </div>
             </div>
-
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 bg-gray-50 dark:bg-gray-900 min-h-0" ref={messagesContainerRef}>
+            <div
+              className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 bg-gray-50 dark:bg-gray-900 min-h-0"
+              ref={messagesContainerRef}
+            >
               {messages.map((message, index) => (
                 <div
                   key={`${message._id}-${message.sender._id}-${index}`}
@@ -535,7 +526,6 @@ const Chat = () => {
               ))}
               <div ref={messagesEndRef} />
             </div>
-
             {/* Message Input */}
             <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 md:p-4">
               <form onSubmit={sendMessage} className="flex items-center space-x-2">
@@ -579,9 +569,7 @@ const Chat = () => {
                 View Conversations
               </button>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Select a conversation</h3>
-              <p className="text-gray-500 dark:text-gray-400">
-                Choose a conversation to start messaging
-              </p>
+              <p className="text-gray-500 dark:text-gray-400">Choose a conversation to start messaging</p>
             </div>
           </div>
         )}

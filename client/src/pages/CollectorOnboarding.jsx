@@ -45,9 +45,9 @@ const CollectorOnboarding = () => {
   })
 
   const steps = [
-    { id: 1, title: "Business Information", icon: FileText },
-    { id: 2, title: "Service Details", icon: MapPin },
-    { id: 3, title: "Subscription", icon: Star },
+    { id: 1, title: "Business Info", icon: FileText },
+    { id: 2, title: "Services", icon: MapPin },
+    { id: 3, title: "Plan", icon: Star },
     { id: 4, title: "Pricing", icon: DollarSign },
     { id: 5, title: "Documents", icon: Upload },
     { id: 6, title: "Review", icon: CheckCircle },
@@ -159,7 +159,7 @@ const CollectorOnboarding = () => {
           type="text"
           value={formData.companyName}
           onChange={(e) => handleInputChange("companyName", e.target.value)}
-          className="input-field"
+          className="input-field w-full"
           placeholder="Enter your business name"
           required
         />
@@ -173,7 +173,7 @@ const CollectorOnboarding = () => {
           type="text"
           value={formData.businessLicense}
           onChange={(e) => handleInputChange("businessLicense", e.target.value)}
-          className="input-field"
+          className="input-field w-full"
           placeholder="Enter your business license number"
         />
       </div>
@@ -186,7 +186,7 @@ const CollectorOnboarding = () => {
           max="100"
           value={formData.serviceRadius}
           onChange={(e) => handleInputChange("serviceRadius", Number.parseInt(e.target.value))}
-          className="input-field"
+          className="input-field w-full"
           required
         />
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">How far are you willing to travel for services?</p>
@@ -198,7 +198,7 @@ const CollectorOnboarding = () => {
           type="text"
           value={formData.serviceLocations}
           onChange={(e) => handleInputChange("serviceLocations", e.target.value)}
-          className="input-field"
+          className="input-field w-full"
           placeholder="e.g., Ruai, Kamulu, Stage 26"
           required
         />
@@ -207,10 +207,10 @@ const CollectorOnboarding = () => {
 
       <div>
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Working Hours</h3>
-        <div className="space-y-3">
+        <div className="space-y-4">
           {Object.keys(formData.workingHours).map((day) => (
-            <div key={day} className="flex items-center space-x-4">
-              <div className="w-24">
+            <div key={day} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
                 <label className="flex items-center">
                   <input
                     type="checkbox"
@@ -218,24 +218,31 @@ const CollectorOnboarding = () => {
                     onChange={(e) => handleWorkingHoursChange(day, "available", e.target.checked)}
                     className="mr-2"
                   />
-                  <span className="capitalize font-medium text-gray-900 dark:text-white">{day}</span>
+                  <span className="capitalize font-medium text-gray-900 dark:text-white text-sm sm:text-base">
+                    {day}
+                  </span>
                 </label>
               </div>
               {formData.workingHours[day].available && (
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="time"
-                    value={formData.workingHours[day].start}
-                    onChange={(e) => handleWorkingHoursChange(day, "start", e.target.value)}
-                    className="input-field w-32"
-                  />
-                  <span className="text-gray-500">to</span>
-                  <input
-                    type="time"
-                    value={formData.workingHours[day].end}
-                    onChange={(e) => handleWorkingHoursChange(day, "end", e.target.value)}
-                    className="input-field w-32"
-                  />
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-400 min-w-[40px]">From:</span>
+                    <input
+                      type="time"
+                      value={formData.workingHours[day].start}
+                      onChange={(e) => handleWorkingHoursChange(day, "start", e.target.value)}
+                      className="input-field text-sm flex-1"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-400 min-w-[40px]">To:</span>
+                    <input
+                      type="time"
+                      value={formData.workingHours[day].end}
+                      onChange={(e) => handleWorkingHoursChange(day, "end", e.target.value)}
+                      className="input-field text-sm flex-1"
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -251,7 +258,7 @@ const CollectorOnboarding = () => {
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Services You Offer</h3>
         <p className="text-gray-600 dark:text-gray-400 mb-6">Select all services you can provide</p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {serviceTypes.map((service) => (
             <div
               key={service.id}
@@ -262,16 +269,16 @@ const CollectorOnboarding = () => {
               }`}
               onClick={() => handleServiceToggle(service.id)}
             >
-              <div className="flex items-center space-x-3">
+              <div className="flex items-start space-x-3">
                 <input
                   type="checkbox"
                   checked={formData.servicesOffered.includes(service.id)}
                   onChange={() => handleServiceToggle(service.id)}
-                  className="text-green-600"
+                  className="text-green-600 mt-1"
                 />
-                <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white">{service.name}</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{service.description}</p>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">{service.name}</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{service.description}</p>
                 </div>
               </div>
             </div>
@@ -284,7 +291,7 @@ const CollectorOnboarding = () => {
   const renderSubscription = () => (
     <div className="space-y-6">
       <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Choose Your Subscription Plan</h3>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {subscriptionPlans.map((plan) => (
           <div
             key={plan.id}
@@ -342,7 +349,7 @@ const CollectorOnboarding = () => {
         <select
           value={formData.pricing.type}
           onChange={(e) => setFormData((prev) => ({ ...prev, pricing: { ...prev.pricing, type: e.target.value } }))}
-          className="input-field"
+          className="input-field w-full"
         >
           {pricingTypes.map((type) => (
             <option key={type.value} value={type.value}>{type.label}</option>
@@ -354,7 +361,7 @@ const CollectorOnboarding = () => {
         <select
           value={formData.pricing.unit}
           onChange={(e) => setFormData((prev) => ({ ...prev, pricing: { ...prev.pricing, unit: e.target.value } }))}
-          className="input-field"
+          className="input-field w-full"
         >
           {pricingUnits.map((unit) => (
             <option key={unit.value} value={unit.value}>{unit.label}</option>
@@ -368,7 +375,7 @@ const CollectorOnboarding = () => {
           min="0"
           value={formData.pricing.basePrice}
           onChange={(e) => setFormData((prev) => ({ ...prev, pricing: { ...prev.pricing, basePrice: e.target.value } }))}
-          className="input-field"
+          className="input-field w-full"
           placeholder="e.g., 40"
           required
         />
@@ -381,7 +388,7 @@ const CollectorOnboarding = () => {
           min="0"
           value={formData.pricing.additionalFee}
           onChange={(e) => setFormData((prev) => ({ ...prev, pricing: { ...prev.pricing, additionalFee: e.target.value } }))}
-          className="input-field"
+          className="input-field w-full"
           placeholder="e.g., 100"
         />
       </div>
@@ -391,7 +398,7 @@ const CollectorOnboarding = () => {
           type="text"
           value={formData.pricing.additionalFeeReason}
           onChange={(e) => setFormData((prev) => ({ ...prev, pricing: { ...prev.pricing, additionalFeeReason: e.target.value } }))}
-          className="input-field"
+          className="input-field w-full"
           placeholder="e.g., Out of area pickup, hazardous waste, etc."
         />
       </div>
@@ -409,9 +416,9 @@ const CollectorOnboarding = () => {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Business License (optional)
             </label>
-            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 sm:p-6 text-center">
               <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-600 dark:text-gray-400 mb-2">
+              <p className="text-gray-600 dark:text-gray-400 mb-2 text-sm sm:text-base">
                 {formData.documents.businessLicense
                   ? formData.documents.businessLicense.name
                   : "Upload business license"}
@@ -423,7 +430,7 @@ const CollectorOnboarding = () => {
                 className="hidden"
                 id="business-license"
               />
-              <label htmlFor="business-license" className="btn-secondary cursor-pointer">
+              <label htmlFor="business-license" className="btn-secondary cursor-pointer text-sm">
                 Choose File
               </label>
             </div>
@@ -433,9 +440,9 @@ const CollectorOnboarding = () => {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Insurance Certificate
             </label>
-            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 sm:p-6 text-center">
               <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-600 dark:text-gray-400 mb-2">
+              <p className="text-gray-600 dark:text-gray-400 mb-2 text-sm sm:text-base">
                 {formData.documents.insurance ? formData.documents.insurance.name : "Upload insurance certificate"}
               </p>
               <input
@@ -445,7 +452,7 @@ const CollectorOnboarding = () => {
                 className="hidden"
                 id="insurance"
               />
-              <label htmlFor="insurance" className="btn-secondary cursor-pointer">
+              <label htmlFor="insurance" className="btn-secondary cursor-pointer text-sm">
                 Choose File
               </label>
             </div>
@@ -458,63 +465,88 @@ const CollectorOnboarding = () => {
   const renderReview = () => (
     <div className="space-y-6">
       <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Review Your Information</h3>
-      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-        <p><span className="font-semibold">Business Name:</span> {formData.companyName}</p>
-        <p><span className="font-semibold">Business License:</span> {formData.businessLicense}</p>
-        <p><span className="font-semibold">Service Radius:</span> {formData.serviceRadius} km</p>
-        <p><span className="font-semibold">Service Locations:</span> {formData.serviceLocations}</p>
-        <p><span className="font-semibold">Working Hours:</span></p>
-        <ul className="ml-6 list-disc">
-          {Object.entries(formData.workingHours).map(([day, hours]) => (
-            <li key={day}>
-              {day.charAt(0).toUpperCase() + day.slice(1)}: {hours.available ? `${hours.start} - ${hours.end}` : "Not available"}
-            </li>
-          ))}
-        </ul>
-        <p><span className="font-semibold">Services Offered:</span> {formData.servicesOffered.join(", ")}</p>
-        <p><span className="font-semibold">Subscription Plan:</span> {subscriptionPlans.find(p => p.id === formData.subscription)?.name}</p>
-        <p><span className="font-semibold">Pricing:</span> {formData.pricing.basePrice} Ksh per {pricingUnits.find(u => u.value === formData.pricing.unit)?.label}</p>
-        {formData.pricing.additionalFee && (
-          <p><span className="font-semibold">Additional Fee:</span> {formData.pricing.additionalFee} Ksh ({formData.pricing.additionalFeeReason})</p>
-        )}
+      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="space-y-3 text-sm sm:text-base">
+          <p><span className="font-semibold">Business Name:</span> <span className="break-words">{formData.companyName}</span></p>
+          <p><span className="font-semibold">Business License:</span> <span className="break-words">{formData.businessLicense}</span></p>
+          <p><span className="font-semibold">Service Radius:</span> {formData.serviceRadius} km</p>
+          <p><span className="font-semibold">Service Locations:</span> <span className="break-words">{formData.serviceLocations}</span></p>
+          <div>
+            <p className="font-semibold mb-2">Working Hours:</p>
+            <ul className="ml-4 space-y-1 text-sm">
+              {Object.entries(formData.workingHours).map(([day, hours]) => (
+                <li key={day} className="break-words">
+                  <span className="capitalize">{day}:</span> {hours.available ? `${hours.start} - ${hours.end}` : "Not available"}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <p><span className="font-semibold">Services Offered:</span> <span className="break-words">{formData.servicesOffered.join(", ")}</span></p>
+          <p><span className="font-semibold">Subscription Plan:</span> {subscriptionPlans.find(p => p.id === formData.subscription)?.name}</p>
+          <p><span className="font-semibold">Pricing:</span> {formData.pricing.basePrice} Ksh per {pricingUnits.find(u => u.value === formData.pricing.unit)?.label}</p>
+          {formData.pricing.additionalFee && (
+            <p><span className="font-semibold">Additional Fee:</span> <span className="break-words">{formData.pricing.additionalFee} Ksh ({formData.pricing.additionalFeeReason})</span></p>
+          )}
+        </div>
       </div>
     </div>
   )
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-4 sm:py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Progress Steps */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
+        {/* Progress Steps - Mobile Optimized */}
+        <div className="mb-6 sm:mb-8">
+          {/* Mobile: Vertical Progress */}
+          <div className="sm:hidden">
+            <div className="text-center mb-4">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Step {currentStep} of {steps.length}
+              </p>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {steps.find(s => s.id === currentStep)?.title}
+              </h2>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div 
+                className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${(currentStep / steps.length) * 100}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Desktop: Horizontal Progress */}
+          <div className="hidden sm:flex items-center justify-between overflow-x-auto pb-2">
             {steps.map((step, index) => {
               const Icon = step.icon
               const isActive = currentStep === step.id
               const isCompleted = currentStep > step.id
 
               return (
-                <div key={step.id} className="flex items-center">
-                  <div
-                    className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                      isCompleted
-                        ? "bg-green-600 text-white"
-                        : isActive
-                          ? "bg-green-100 text-green-600 border-2 border-green-600"
-                          : "bg-gray-200 text-gray-400"
-                    }`}
-                  >
-                    {isCompleted ? <CheckCircle className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
-                  </div>
-                  <div className="ml-3">
-                    <p className={`text-sm font-medium ${isActive ? "text-green-600" : "text-gray-500"}`}>
-                      Step {step.id}
-                    </p>
-                    <p className={`text-sm ${isActive ? "text-gray-900 dark:text-white" : "text-gray-500"}`}>
-                      {step.title}
-                    </p>
+                <div key={step.id} className="flex items-center flex-shrink-0">
+                  <div className="flex flex-col items-center">
+                    <div
+                      className={`flex items-center justify-center w-10 h-10 rounded-full ${
+                        isCompleted
+                          ? "bg-green-600 text-white"
+                          : isActive
+                            ? "bg-green-100 text-green-600 border-2 border-green-600"
+                            : "bg-gray-200 text-gray-400"
+                      }`}
+                    >
+                      {isCompleted ? <CheckCircle className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
+                    </div>
+                    <div className="mt-2 text-center">
+                      <p className={`text-xs font-medium ${isActive ? "text-green-600" : "text-gray-500"}`}>
+                        Step {step.id}
+                      </p>
+                      <p className={`text-xs ${isActive ? "text-gray-900 dark:text-white" : "text-gray-500"}`}>
+                        {step.title}
+                      </p>
+                    </div>
                   </div>
                   {index < steps.length - 1 && (
-                    <div className={`flex-1 h-0.5 mx-4 ${isCompleted ? "bg-green-600" : "bg-gray-200"}`} />
+                    <div className={`w-16 h-0.5 mx-4 ${isCompleted ? "bg-green-600" : "bg-gray-200"}`} />
                   )}
                 </div>
               )
@@ -523,7 +555,7 @@ const CollectorOnboarding = () => {
         </div>
 
         {/* Form Content */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6 lg:p-8">
           {currentStep === 1 && renderBusinessInfo()}
           {currentStep === 2 && renderServiceDetails()}
           {currentStep === 3 && renderSubscription()}
@@ -532,36 +564,38 @@ const CollectorOnboarding = () => {
           {currentStep === 6 && renderReview()}
 
           {/* Navigation */}
-          <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col sm:flex-row sm:justify-between gap-4 mt-6 sm:mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
               disabled={currentStep === 1}
-              className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed order-2 sm:order-1"
             >
               Previous
             </button>
 
-            {currentStep === 5 ? (
-              <div className="flex space-x-3">
-                <button 
-                  onClick={() => setCurrentStep(6)} 
-                  className="btn-secondary"
-                >
-                  Skip Documents
-                </button>
-                <button onClick={() => setCurrentStep(6)} className="btn-primary">
+            <div className="flex flex-col sm:flex-row gap-3 order-1 sm:order-2">
+              {currentStep === 5 ? (
+                <>
+                  <button 
+                    onClick={() => setCurrentStep(6)} 
+                    className="btn-secondary"
+                  >
+                    Skip Documents
+                  </button>
+                  <button onClick={() => setCurrentStep(6)} className="btn-primary">
+                    Next
+                  </button>
+                </>
+              ) : currentStep < 6 ? (
+                <button onClick={() => setCurrentStep(Math.min(6, currentStep + 1))} className="btn-primary">
                   Next
                 </button>
-              </div>
-            ) : currentStep < 6 ? (
-              <button onClick={() => setCurrentStep(Math.min(6, currentStep + 1))} className="btn-primary">
-                Next
-              </button>
-            ) : (
-              <button onClick={handleSubmit} disabled={loading} className="btn-primary">
-                {loading ? <LoadingSpinner size="sm" /> : "Complete Setup"}
-              </button>
-            )}
+              ) : (
+                <button onClick={handleSubmit} disabled={loading} className="btn-primary">
+                  {loading ? <LoadingSpinner size="sm" /> : "Complete Setup"}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

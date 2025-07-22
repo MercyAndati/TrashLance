@@ -1,292 +1,152 @@
 "use client"
-
-import { useState, useEffect } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { Bell, Filter, Search, Check, Trash2, ArrowLeft } from "lucide-react"
-import { useAuth } from "../contexts/AuthContext"
-import { useNotifications } from "../contexts/NotificationContext"
+import { createContext, useContext, useState, useEffect } from "react"
 import api from "../services/api"
-import LoadingSpinner from "../components/common/LoadingSpinner"
+import { useAuth } from "./AuthContext"
+import io from "socket.io-client"
+import { Bell } from "lucide-react"
 
-const Notifications = () => {
+const NotificationContext = createContext()
+
+export const useNotifications = () => {
+  const context = useContext(NotificationContext)
+  if (!context) {
+    throw new Error("useNotifications must be used within a NotificationProvider")
+  }
+  return context
+}
+
+export const NotificationProvider = ({ children }) => {
+  const [notifications, setNotifications] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [socket, setSocket] = useState(null)
+  const [toast, setToast] = useState(null)
   const { user } = useAuth()
-  const { notifications, unreadCount, markAsRead, fetchNotifications } = useNotifications()
-  const navigate = useNavigate()
-  
-  const [loading, setLoading] = useState(false)
-  const [filter, setFilter] = useState("all")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedNotifications, setSelectedNotifications] = useState([])
 
   useEffect(() => {
-    fetchNotifications()
-  }, [])
+    if (user) {
+      fetchNotifications()
 
-  const filteredNotifications = notifications.filter((notification) => {
-    const matchesFilter = filter === "all" || 
-      (filter === "unread" && !notification.isRead) ||
-      (filter === "read" && notification.isRead)
-    
-    const matchesSearch = !searchQuery || 
-      notification.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      notification.message.toLowerCase().includes(searchQuery.toLowerCase())
-    
-    return matchesFilter && matchesSearch
-  })
+      // Initialize socket connection
+      // Ensure the URL is just the base URL (e.g., https://trashlance.onrender.com)
+      // and include withCredentials and transports options.
+      const socketUrl = import.meta.env.VITE_API_URL
+        ? import.meta.env.VITE_API_URL.replace("/api", "") // Remove /api if present
+        : "http://localhost:5000"
 
-  const handleNotificationClick = async (notification) => {
-    try {
-      if (!notification.isRead) {
-        await markAsRead(notification._id)
+      const newSocket = io(socketUrl, {
+        transports: ["websocket", "polling"],
+        withCredentials: true,
+      })
+      setSocket(newSocket)
+
+      // Debug socket connection
+      newSocket.on("connect", () => {
+        console.log("Socket connected:", newSocket.id)
+      })
+      newSocket.on("connect_error", (error) => {
+        console.error("Socket connection error:", error)
+      })
+
+      // Join user's personal room
+      newSocket.emit("join", user._id)
+      console.log("Joining user room:", user._id)
+
+      // Listen for real-time notifications
+      newSocket.on("new-notification", (data) => {
+        console.log("Received notification:", data)
+        const newNotification = {
+          _id: Date.now().toString(), // Temporary ID
+          type: data.type,
+          title: data.title,
+          message: data.message,
+          data: data.data,
+          isRead: false,
+          createdAt: new Date().toISOString(),
+        }
+
+        addNotification(newNotification)
+
+        // Show toast for new notifications
+        setToast({
+          title: data.title,
+          message: data.message,
+          type: data.type,
+        })
+
+        // Auto-hide toast after 5 seconds
+        setTimeout(() => setToast(null), 5000)
+      })
+
+      return () => {
+        newSocket.disconnect()
       }
-
-      // Navigate based on notification type
-      if (notification.type === 'chat_message' && notification.data?.chatId) {
-        navigate(`/chat?chatId=${notification.data.chatId}`)
-      } else if (notification.data?.bookingId) {
-        navigate(`/bookings/${notification.data.bookingId}`)
-      } else if (notification.data?.postId) {
-        navigate(`/posts/${notification.data.postId}`)
-      } else if (notification.data?.actionUrl) {
-        navigate(notification.data.actionUrl)
-      }
-    } catch (error) {
-      console.error("Failed to handle notification click:", error)
     }
-  }
+  }, [user])
 
-  const handleMarkAllAsRead = async () => {
+  const fetchNotifications = async () => {
     try {
-      setLoading(true)
-      await api.patch("/notifications/mark-all-read")
-      await fetchNotifications()
+      const response = await api.get("/notifications")
+      const notifs = response.data.data
+      setNotifications(notifs)
+      setUnreadCount(notifs.filter((n) => !n.isRead).length)
     } catch (error) {
-      console.error("Failed to mark all as read:", error)
-    } finally {
-      setLoading(false)
+      console.error("Failed to fetch notifications:", error)
     }
   }
 
-  const handleDeleteNotification = async (notificationId) => {
+  const markAsRead = async (notificationId) => {
     try {
-      await api.delete(`/notifications/${notificationId}`)
-      await fetchNotifications()
+      await api.put(`/notifications/${notificationId}/read`)
+      setNotifications((prev) => prev.map((n) => (n._id === notificationId ? { ...n, isRead: true } : n)))
+      setUnreadCount((prev) => Math.max(0, prev - 1))
     } catch (error) {
-      console.error("Failed to delete notification:", error)
+      console.error("Failed to mark notification as read:", error)
+      // Don't throw error, just log it
     }
   }
 
-  const getNotificationIcon = (type) => {
-    switch (type) {
-      case 'booking_confirmed':
-      case 'booking_cancelled':
-      case 'booking_rescheduled':
-        return "📅"
-      case 'service_started':
-      case 'service_completed':
-        return "✅"
-      case 'payment_received':
-      case 'payment_failed':
-        return "💰"
-      case 'chat_message':
-      case 'new_chat':
-        return "💬"
-      case 'new_comment':
-        return "💭"
-      case 'account_verified':
-        return "✅"
-      case 'system_maintenance':
-        return "🔧"
-      case 'promotion':
-        return "🎉"
-      case 'reminder':
-        return "⏰"
-      default:
-        return "🔔"
-    }
-  }
-
-  const getNotificationColor = (type) => {
-    switch (type) {
-      case 'booking_confirmed':
-      case 'service_completed':
-      case 'payment_received':
-      case 'account_verified':
-        return "text-green-600"
-      case 'booking_cancelled':
-      case 'payment_failed':
-        return "text-red-600"
-      case 'booking_rescheduled':
-      case 'service_started':
-        return "text-yellow-600"
-      case 'chat_message':
-      case 'new_chat':
-      case 'new_comment':
-        return "text-blue-600"
-      case 'system_maintenance':
-        return "text-orange-600"
-      case 'promotion':
-        return "text-purple-600"
-      case 'reminder':
-        return "text-gray-600"
-      default:
-        return "text-gray-600"
-    }
-  }
-
-  const formatTime = (date) => {
-    const now = new Date()
-    const notificationDate = new Date(date)
-    const diffInHours = (now - notificationDate) / (1000 * 60 * 60)
-    
-    if (diffInHours < 1) {
-      const diffInMinutes = Math.floor((now - notificationDate) / (1000 * 60))
-      return `${diffInMinutes} minute${diffInMinutes !== 1 ? 's' : ''} ago`
-    } else if (diffInHours < 24) {
-      const hours = Math.floor(diffInHours)
-      return `${hours} hour${hours !== 1 ? 's' : ''} ago`
-    } else {
-      const days = Math.floor(diffInHours / 24)
-      return `${days} day${days !== 1 ? 's' : ''} ago`
+  const addNotification = (notification) => {
+    setNotifications((prev) => [notification, ...prev])
+    if (!notification.isRead) {
+      setUnreadCount((prev) => prev + 1)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => navigate(-1)}
-                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Notifications</h1>
-                <p className="text-gray-600 dark:text-gray-400">
-                  {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
-                </p>
-              </div>
+    <NotificationContext.Provider
+      value={{
+        notifications,
+        unreadCount,
+        fetchNotifications,
+        markAsRead,
+        addNotification,
+      }}
+    >
+      {children}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 max-w-sm">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <Bell className="h-5 w-5 text-green-500" />
             </div>
-            <div className="flex items-center space-x-2">
-              {unreadCount > 0 && (
-                <button
-                  onClick={handleMarkAllAsRead}
-                  disabled={loading}
-                  className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
-                >
-                  {loading ? <LoadingSpinner size="sm" /> : <Check className="w-4 h-4 mr-2" />}
-                  Mark All Read
-                </button>
-              )}
+            <div className="ml-3 flex-1">
+              <h4 className="text-sm font-medium text-gray-900 dark:text-white">{toast.title}</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{toast.message}</p>
             </div>
+            <button
+              onClick={() => setToast(null)}
+              className="ml-4 flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <span className="sr-only">Close</span>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         </div>
-
-        {/* Filters and Search */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 mb-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search notifications..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            {/* Filter */}
-            <div className="flex items-center space-x-2">
-              <Filter className="w-4 h-4 text-gray-400" />
-              <select
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              >
-                <option value="all">All Notifications</option>
-                <option value="unread">Unread Only</option>
-                <option value="read">Read Only</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Notifications List */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
-          {filteredNotifications.length === 0 ? (
-            <div className="p-8 text-center">
-              <Bell className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                {searchQuery || filter !== "all" ? "No notifications found" : "No notifications yet"}
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400">
-                {searchQuery || filter !== "all" 
-                  ? "Try adjusting your search or filter criteria"
-                  : "You'll see notifications here when you receive them"
-                }
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredNotifications.map((notification) => (
-                <div
-                  key={notification._id}
-                  className={`p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer ${
-                    !notification.isRead ? "bg-blue-50 dark:bg-blue-900/20" : ""
-                  }`}
-                  onClick={() => handleNotificationClick(notification)}
-                >
-                  <div className="flex items-start space-x-4">
-                    <div className={`text-2xl ${getNotificationColor(notification.type)}`}>
-                      {getNotificationIcon(notification.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900 dark:text-white text-sm">
-                            {notification.title}
-                          </h4>
-                          <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
-                            {notification.message}
-                          </p>
-                          <p className="text-gray-500 dark:text-gray-500 text-xs mt-2">
-                            {formatTime(notification.createdAt)}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-2 ml-4">
-                          {!notification.isRead && (
-                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                          )}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeleteNotification(notification._id)
-                            }}
-                            className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                            title="Delete notification"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+      )}
+    </NotificationContext.Provider>
   )
 }
-
-export default Notifications 
