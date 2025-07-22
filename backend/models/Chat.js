@@ -248,6 +248,8 @@ chatSchema.statics.findOrCreateDirectChat = async function (user1Id, user2Id, re
       }
 
       chat = new this(newChatData)
+      // ADD THIS LINE TO INSPECT THE DATA BEFORE SAVE
+      console.log("Attempting to save new chat with newChatData:", JSON.stringify(newChatData, null, 2))
       await chat.save()
 
       console.log(`Created new chat: ${chat._id}`)
