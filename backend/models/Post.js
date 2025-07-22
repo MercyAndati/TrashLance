@@ -1,6 +1,5 @@
 const mongoose = require("mongoose")
 const mongoosePaginate = require("mongoose-paginate-v2")
-
 const postSchema = new mongoose.Schema(
   {
     title: {
@@ -118,7 +117,7 @@ const postSchema = new mongoose.Schema(
     },
     reportNumber: {
       type: String,
-      unique: true,
+      unique: true, // This already creates a unique index
     },
     views: {
       type: Number,
@@ -135,7 +134,7 @@ postSchema.index({ "location.coordinates": "2dsphere" })
 postSchema.index({ status: 1, createdAt: -1 })
 postSchema.index({ author: 1, createdAt: -1 })
 postSchema.index({ category: 1, severity: 1 })
-postSchema.index({ reportNumber: 1 })
+// REMOVE THIS LINE: postSchema.index({ reportNumber: 1 })
 
 // Add pagination plugin
 postSchema.plugin(mongoosePaginate)
@@ -157,7 +156,6 @@ postSchema.methods.updateStatus = function (newStatus, updatedBy, notes) {
     notes,
   })
   this.status = newStatus
-
   if (newStatus === "completed") {
     this.actualCleanupDate = new Date()
   }
@@ -166,15 +164,14 @@ postSchema.methods.updateStatus = function (newStatus, updatedBy, notes) {
 // Method to add upvote
 postSchema.methods.toggleUpvote = function (userId) {
   const existingVote = this.upvotes.find((vote) => vote.user.toString() === userId.toString())
-
   if (existingVote) {
     // Remove upvote
     this.upvotes = this.upvotes.filter((vote) => vote.user.toString() !== userId.toString())
-    return false 
+    return false
   } else {
     // Add upvote
     this.upvotes.push({ user: userId })
-    return true 
+    return true
   }
 }
 

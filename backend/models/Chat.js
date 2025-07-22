@@ -114,7 +114,7 @@ const chatSchema = new mongoose.Schema(
 
 // Existing indexes (keep these)
 chatSchema.index({ "participants.user": 1 })
-chatSchema.index({ relatedBooking: 1 })
+// REMOVE THIS LINE: chatSchema.index({ relatedBooking: 1 })
 chatSchema.index({ lastActivity: -1 })
 chatSchema.index({ "messages.sentAt": -1 })
 
@@ -126,23 +126,8 @@ chatSchema.index({ "messages.sentAt": -1 })
 // --- NEW INDEX DEFINITION FOR sortedParticipantIds ---
 // Drop the old sortedParticipantIds_1 index first if it exists!
 // db.chats.dropIndex("sortedParticipantIds_1")
-chatSchema.index(
-  { sortedParticipantIds: 1 },
-  {
-    unique: true,
-    partialFilterExpression: { chatType: "direct", status: "active" },
-    // This is the key change: use a compound index on the array elements
-    // This ensures the *combination* of elements is unique, not individual elements.
-    // However, for a two-element array, a simple unique index on the array field itself
-    // should work if the array is always sorted and contains exactly two elements.
-    // The error suggests it's not being treated as an array for uniqueness.
-
-    // Let's try a different approach for uniqueness:
-    // Instead of indexing the array directly, we can index a string representation
-    // of the sorted IDs. This is a common workaround for this exact issue.
-    // We'll add a new field `sortedParticipantIdsString` to the schema.
-  },
-)
+// REMOVED THE sortedParticipantIds INDEX DEFINITION AS IT WAS CAUSING ISSUES
+// AND RELYING ON sortedParticipantIdsString FOR UNIQUENESS.
 
 // New unique index for booking chats
 // Ensures only one active chat exists for a specific booking.
