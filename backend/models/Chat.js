@@ -19,13 +19,16 @@ const chatSchema = new mongoose.Schema(
         },
       },
     ],
-
+    // New field for direct chat uniqueness: stores sorted participant IDs
+    sortedParticipantIds: {
+      type: [mongoose.Schema.Types.ObjectId],
+      // This field will only be populated for 'direct' chats
+    },
     // Related booking if this chat is about a specific booking
     relatedBooking: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Booking",
     },
-
     messages: [
       {
         sender: {
@@ -78,24 +81,20 @@ const chatSchema = new mongoose.Schema(
         },
       },
     ],
-
     chatType: {
       type: String,
       enum: ["direct", "booking", "support"],
       default: "direct",
     },
-
     status: {
       type: String,
       enum: ["active", "archived", "blocked"],
       default: "active",
     },
-
     lastActivity: {
       type: Date,
       default: Date.now,
     },
-
     // Chat settings
     settings: {
       notifications: {
@@ -113,26 +112,38 @@ const chatSchema = new mongoose.Schema(
   },
 )
 
-// Indexes
+// Existing indexes (keep these)
 chatSchema.index({ "participants.user": 1 })
 chatSchema.index({ relatedBooking: 1 })
 chatSchema.index({ lastActivity: -1 })
 chatSchema.index({ "messages.sentAt": -1 })
 
-// Unique compound index to prevent duplicate chats between the same users
+// --- IMPORTANT: Remove the old problematic unique index if it exists in your DB ---
+// You might need to manually drop it in your MongoDB shell if it was created:
+// db.chats.dropIndex("participants.user_1_chatType_1_relatedBooking_1")
+// (The exact name might vary, check with db.chats.getIndexes())
+
+// New unique index for direct chats (1-to-1)
+// Ensures only one active direct chat exists between any two users, regardless of order.
 chatSchema.index(
-  { 
-    "participants.user": 1, 
-    chatType: 1, 
-    relatedBooking: 1 
-  }, 
-  { 
+  { sortedParticipantIds: 1 },
+  {
     unique: true,
-    partialFilterExpression: { status: "active" }
-  }
+    partialFilterExpression: { chatType: "direct", status: "active" },
+  },
 )
 
-// Method to add message
+// New unique index for booking chats
+// Ensures only one active chat exists for a specific booking.
+chatSchema.index(
+  { relatedBooking: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { chatType: "booking", status: "active" },
+  },
+)
+
+// Method to add message (no changes needed)
 chatSchema.methods.addMessage = function (senderId, content, messageType = "text", metadata = {}) {
   const message = {
     sender: senderId,
@@ -140,14 +151,12 @@ chatSchema.methods.addMessage = function (senderId, content, messageType = "text
     messageType,
     metadata,
   }
-
   this.messages.push(message)
   this.lastActivity = new Date()
-
   return this.messages[this.messages.length - 1]
 }
 
-// Method to mark messages as read
+// Method to mark messages as read (no changes needed)
 chatSchema.methods.markAsRead = function (userId, messageIds = []) {
   try {
     if (messageIds.length === 0) {
@@ -155,7 +164,6 @@ chatSchema.methods.markAsRead = function (userId, messageIds = []) {
       this.messages.forEach((message) => {
         if (message && message.sender && message.readBy) {
           const alreadyRead = message.readBy.some((read) => read.user.toString() === userId.toString())
-
           if (!alreadyRead && message.sender.toString() !== userId.toString()) {
             message.readBy.push({ user: userId })
           }
@@ -167,14 +175,12 @@ chatSchema.methods.markAsRead = function (userId, messageIds = []) {
         const message = this.messages.id(messageId)
         if (message && message.readBy) {
           const alreadyRead = message.readBy.some((read) => read.user.toString() === userId.toString())
-
           if (!alreadyRead) {
             message.readBy.push({ user: userId })
           }
         }
       })
     }
-
     // Update participant's last seen
     const participant = this.participants.find((p) => p.user.toString() === userId.toString())
     if (participant) {
@@ -186,7 +192,7 @@ chatSchema.methods.markAsRead = function (userId, messageIds = []) {
   }
 }
 
-// Method to get unread message count for a user
+// Method to get unread message count for a user (no changes needed)
 chatSchema.methods.getUnreadCount = function (userId) {
   return this.messages.filter((message) => {
     const isNotSender = message.sender.toString() !== userId.toString()
@@ -198,61 +204,74 @@ chatSchema.methods.getUnreadCount = function (userId) {
 // Static method to find or create chat between users
 chatSchema.statics.findOrCreateDirectChat = async function (user1Id, user2Id, relatedBooking = null) {
   try {
-    // Convert to strings for consistent comparison
     const user1IdStr = user1Id.toString()
     const user2IdStr = user2Id.toString()
-    
+    const chatType = relatedBooking ? "booking" : "direct"
+
     console.log(`Looking for chat between ${user1IdStr} and ${user2IdStr}, booking: ${relatedBooking}`)
-    
-    // Try to find existing chat with more specific query
-    let chat = await this.findOne({
-      chatType: relatedBooking ? "booking" : "direct",
-      "participants.user": { $all: [user1Id, user2Id] },
-      status: "active",
-      ...(relatedBooking && { relatedBooking }),
-    })
+
+    let chat = null
+    if (chatType === "direct") {
+      // For direct chats, sort the participant IDs to ensure consistent lookup
+      const sortedIds = [user1Id, user2Id].sort((a, b) => a.toString().localeCompare(b.toString()))
+      chat = await this.findOne({
+        sortedParticipantIds: sortedIds,
+        chatType: "direct",
+        status: "active",
+      })
+    } else if (chatType === "booking" && relatedBooking) {
+      // For booking chats, use the relatedBooking ID
+      chat = await this.findOne({
+        relatedBooking: relatedBooking,
+        chatType: "booking",
+        status: "active",
+      })
+    }
 
     if (chat) {
       console.log(`Found existing chat: ${chat._id}`)
       return chat
     }
 
-    // Check if there are any other chats between these users (in case of duplicates)
-    const existingChats = await this.find({
-      "participants.user": { $all: [user1Id, user2Id] },
-      status: "active",
-      ...(relatedBooking && { relatedBooking }),
-    })
-
-    if (existingChats.length > 0) {
-      console.log(`Found ${existingChats.length} existing chats, using the first one`)
-      return existingChats[0]
-    }
-
     console.log(`Creating new chat between ${user1IdStr} and ${user2IdStr}`)
-    
+
     try {
-      // Create new chat
-      chat = new this({
+      const newChatData = {
         participants: [{ user: user1Id }, { user: user2Id }],
-        chatType: relatedBooking ? "booking" : "direct",
+        chatType: chatType,
         ...(relatedBooking && { relatedBooking }),
-      })
+      }
+
+      if (chatType === "direct") {
+        // Populate sortedParticipantIds for direct chats
+        newChatData.sortedParticipantIds = [user1Id, user2Id].sort((a, b) => a.toString().localeCompare(b.toString()))
+      }
+
+      chat = new this(newChatData)
       await chat.save()
-      
+
       console.log(`Created new chat: ${chat._id}`)
       return chat
     } catch (error) {
       // If duplicate key error, try to find the existing chat again
       if (error.code === 11000) {
-        console.log("Duplicate chat detected, finding existing chat...")
-        const existingChat = await this.findOne({
-          chatType: relatedBooking ? "booking" : "direct",
-          "participants.user": { $all: [user1Id, user2Id] },
-          status: "active",
-          ...(relatedBooking && { relatedBooking }),
-        })
-        
+        console.log("Duplicate chat detected during creation, finding existing chat...")
+        let existingChat = null
+        if (chatType === "direct") {
+          const sortedIds = [user1Id, user2Id].sort((a, b) => a.toString().localeCompare(b.toString()))
+          existingChat = await this.findOne({
+            sortedParticipantIds: sortedIds,
+            chatType: "direct",
+            status: "active",
+          })
+        } else if (chatType === "booking" && relatedBooking) {
+          existingChat = await this.findOne({
+            relatedBooking: relatedBooking,
+            chatType: "booking",
+            status: "active",
+          })
+        }
+
         if (existingChat) {
           console.log(`Found existing chat after duplicate error: ${existingChat._id}`)
           return existingChat
