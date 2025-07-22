@@ -527,8 +527,8 @@ const Chat = () => {
               <div ref={messagesEndRef} />
             </div>
             {/* Message Input */}
-            <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 md:p-4 overflow-hidden">
-              <form onSubmit={sendMessage} className="flex items-center space-x-2 w-full">
+            <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 md:p-4">
+              <form onSubmit={sendMessage} className="flex items-center space-x-2">
                 <button
                   type="button"
                   className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
