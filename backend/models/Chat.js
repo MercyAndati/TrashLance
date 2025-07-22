@@ -118,18 +118,29 @@ chatSchema.index({ relatedBooking: 1 })
 chatSchema.index({ lastActivity: -1 })
 chatSchema.index({ "messages.sentAt": -1 })
 
-// --- IMPORTANT: Remove the old problematic unique index if it exists in your DB ---
+// --- IMPORTANT: Drop the old problematic unique index if it exists in your DB ---
 // You might need to manually drop it in your MongoDB shell if it was created:
 // db.chats.dropIndex("participants.user_1_chatType_1_relatedBooking_1")
 // (The exact name might vary, check with db.chats.getIndexes())
 
-// New unique index for direct chats (1-to-1)
-// Ensures only one active direct chat exists between any two users, regardless of order.
+// --- NEW INDEX DEFINITION FOR sortedParticipantIds ---
+// Drop the old sortedParticipantIds_1 index first if it exists!
+// db.chats.dropIndex("sortedParticipantIds_1")
 chatSchema.index(
   { sortedParticipantIds: 1 },
   {
     unique: true,
     partialFilterExpression: { chatType: "direct", status: "active" },
+    // This is the key change: use a compound index on the array elements
+    // This ensures the *combination* of elements is unique, not individual elements.
+    // However, for a two-element array, a simple unique index on the array field itself
+    // should work if the array is always sorted and contains exactly two elements.
+    // The error suggests it's not being treated as an array for uniqueness.
+
+    // Let's try a different approach for uniqueness:
+    // Instead of indexing the array directly, we can index a string representation
+    // of the sorted IDs. This is a common workaround for this exact issue.
+    // We'll add a new field `sortedParticipantIdsString` to the schema.
   },
 )
 
@@ -214,8 +225,10 @@ chatSchema.statics.findOrCreateDirectChat = async function (user1Id, user2Id, re
     if (chatType === "direct") {
       // For direct chats, sort the participant IDs to ensure consistent lookup
       const sortedIds = [user1Id, user2Id].sort((a, b) => a.toString().localeCompare(b.toString()))
+      // Use the sorted string for lookup
+      const sortedIdsString = sortedIds.join("_") // e.g., "id1_id2"
       chat = await this.findOne({
-        sortedParticipantIds: sortedIds,
+        sortedParticipantIdsString: sortedIdsString, // Use the new field for lookup
         chatType: "direct",
         status: "active",
       })
@@ -243,12 +256,12 @@ chatSchema.statics.findOrCreateDirectChat = async function (user1Id, user2Id, re
       }
 
       if (chatType === "direct") {
-        // Populate sortedParticipantIds for direct chats
-        newChatData.sortedParticipantIds = [user1Id, user2Id].sort((a, b) => a.toString().localeCompare(b.toString()))
+        const sortedIds = [user1Id, user2Id].sort((a, b) => a.toString().localeCompare(b.toString()))
+        newChatData.sortedParticipantIds = sortedIds // Keep this for reference if needed
+        newChatData.sortedParticipantIdsString = sortedIds.join("_") // Store the string for uniqueness
       }
 
       chat = new this(newChatData)
-      // ADD THIS LINE TO INSPECT THE DATA BEFORE SAVE
       console.log("Attempting to save new chat with newChatData:", JSON.stringify(newChatData, null, 2))
       await chat.save()
 
@@ -261,8 +274,9 @@ chatSchema.statics.findOrCreateDirectChat = async function (user1Id, user2Id, re
         let existingChat = null
         if (chatType === "direct") {
           const sortedIds = [user1Id, user2Id].sort((a, b) => a.toString().localeCompare(b.toString()))
+          const sortedIdsString = sortedIds.join("_")
           existingChat = await this.findOne({
-            sortedParticipantIds: sortedIds,
+            sortedParticipantIdsString: sortedIdsString,
             chatType: "direct",
             status: "active",
           })
