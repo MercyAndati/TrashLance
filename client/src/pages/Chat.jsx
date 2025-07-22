@@ -341,7 +341,7 @@ const Chat = () => {
   }
 
   return (
-    <div className="h-screen bg-gray-50 dark:bg-gray-900 flex overflow-hidden relative">
+    <div className="h-screen bg-gray-50 dark:bg-gray-900 flex overflow-hidden relative w-full max-w-full">
       {/* Mobile Overlay */}
       {showSidebar && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" onClick={() => setShowSidebar(false)} />
@@ -351,7 +351,7 @@ const Chat = () => {
         className={`
         ${showSidebar ? "translate-x-0" : "-translate-x-full"}
         md:translate-x-0 md:static fixed top-0 left-0 z-50
-        w-full md:w-1/3 lg:w-1/4 xl:w-1/3
+        w-full max-w-full md:w-1/3 lg:w-1/4 xl:w-1/3
         bg-white dark:bg-gray-800
         border-r border-gray-200 dark:border-gray-700
         flex flex-col h-full
@@ -434,11 +434,11 @@ const Chat = () => {
         </div>
       </div>
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col h-full min-w-0">
+      <div className="flex-1 flex flex-col h-full min-w-0 w-full max-w-full overflow-hidden">
         {activeConversation ? (
           <>
             {/* Chat Header */}
-            <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
+            <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-3 md:p-4 w-full">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <button
@@ -459,7 +459,7 @@ const Chat = () => {
                     className="w-10 h-10 rounded-full object-cover"
                   />
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white truncate">
+                    <h3 className="text-base md:text-lg font-medium text-gray-900 dark:text-white truncate">
                       {getOtherParticipant(activeConversation)?.user?.username}
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
@@ -482,16 +482,16 @@ const Chat = () => {
             </div>
             {/* Messages */}
             <div
-              className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 bg-gray-50 dark:bg-gray-900 min-h-0"
+              className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-4 space-y-3 md:space-y-4 bg-gray-50 dark:bg-gray-900 min-h-0 w-full"
               ref={messagesContainerRef}
             >
               {messages.map((message, index) => (
                 <div
                   key={`${message._id}-${message.sender._id}-${index}`}
-                  className={`flex ${message.sender._id === user._id ? "justify-end" : "justify-start"}`}
+                  className={`flex w-full ${message.sender._id === user._id ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[85%] sm:max-w-xs lg:max-w-md px-3 md:px-4 py-2 rounded-2xl relative group ${
+                    className={`max-w-[80%] sm:max-w-xs lg:max-w-md px-3 md:px-4 py-2 rounded-2xl relative group break-words ${
                       message.sender._id === user._id
                         ? "bg-green-500 text-white rounded-br-md"
                         : "bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-bl-md shadow-sm"
@@ -527,17 +527,17 @@ const Chat = () => {
               <div ref={messagesEndRef} />
             </div>
             {/* Message Input */}
-            <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 md:p-4">
-              <form onSubmit={sendMessage} className="flex items-center space-x-2">
+            <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 md:p-4 w-full">
+              <form onSubmit={sendMessage} className="flex items-center space-x-2 w-full">
                 <button
                   type="button"
-                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 flex-shrink-0"
                 >
                   <Paperclip className="w-5 h-5" />
                 </button>
                 <button
                   type="button"
-                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 flex-shrink-0"
                 >
                   <Smile className="w-5 h-5" />
                 </button>
@@ -546,13 +546,13 @@ const Chat = () => {
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type a message..."
-                  className="flex-1 px-3 md:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                  className="flex-1 min-w-0 px-3 md:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                   disabled={sendingMessage}
                 />
                 <button
                   type="submit"
                   disabled={!newMessage.trim() || sendingMessage}
-                  className="p-2 bg-green-600 text-white rounded-full hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="p-2 bg-green-600 text-white rounded-full hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
                 >
                   {sendingMessage ? <LoadingSpinner size="sm" /> : <Send className="w-5 h-5" />}
                 </button>
@@ -560,7 +560,7 @@ const Chat = () => {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+          <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900 w-full">
             <div className="text-center px-4">
               <button
                 onClick={() => setShowSidebar(true)}

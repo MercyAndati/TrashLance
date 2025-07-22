@@ -1,5 +1,4 @@
 "use client"
-
 import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Menu, Search, Bell, User, Settings, LogOut, Sun, Moon } from "lucide-react"
@@ -18,7 +17,6 @@ const Navbar = ({ onMenuClick }) => {
   const [showLocationDropdown, setShowLocationDropdown] = useState(false)
   const [searchError, setSearchError] = useState("")
   const navigate = useNavigate()
-
   const { user, logout } = useAuth()
   const { isDark, toggleTheme } = useTheme()
   const { notifications, unreadCount, markAsRead } = useNotifications()
@@ -35,11 +33,13 @@ const Navbar = ({ onMenuClick }) => {
     const value = e.target.value
     setSearchQuery(value)
     setSearchError("")
+    
     if (!value) {
       setFilteredLocations(allLocations)
       setShowLocationDropdown(false)
       return
     }
+
     const filtered = allLocations.filter(loc => loc.toLowerCase().includes(value.toLowerCase()))
     setFilteredLocations(filtered)
     setShowLocationDropdown(true)
@@ -55,6 +55,7 @@ const Navbar = ({ onMenuClick }) => {
   const handleSearch = (e) => {
     e.preventDefault()
     if (!searchQuery.trim()) return
+    
     const found = allLocations.find(loc => loc.toLowerCase() === searchQuery.trim().toLowerCase())
     if (found) {
       navigate(`/locations?selected=${encodeURIComponent(found)}`)
@@ -85,7 +86,6 @@ const Navbar = ({ onMenuClick }) => {
                 <Menu className="w-6 h-6" />
               </button>
             )}
-
             <Link to="/" className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">T</span>
@@ -159,10 +159,10 @@ const Navbar = ({ onMenuClick }) => {
                       </span>
                     )}
                   </button>
-
+                  
                   {/* Notifications dropdown */}
                   {showNotifications && (
-                    <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
+                    <div className="absolute right-0 sm:right-0 sm:left-auto left-1/2 sm:transform-none transform -translate-x-1/2 mt-2 w-80 sm:w-80 w-[calc(100vw-2rem)] max-w-sm bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
                       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h3>
                       </div>
@@ -229,7 +229,7 @@ const Navbar = ({ onMenuClick }) => {
                     )}
                     <span className="hidden sm:block text-sm font-medium">{user.username}</span>
                   </button>
-
+                  
                   {/* User dropdown */}
                   {showUserMenu && (
                     <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
