@@ -162,7 +162,7 @@ const Navbar = ({ onMenuClick }) => {
                   
                   {/* Notifications dropdown */}
                   {showNotifications && (
-                    <div className="absolute right-0 sm:right-auto sm:left-auto left-1/2 sm:transform-none transform -translate-x-1/2 mt-2 w-80 sm:w-50 w-[calc(100vw-2rem)] max-w-sm bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
+                    <div className="absolute right-0 sm:left-auto left-1/2 sm:transform-none transform -translate-x-1/2 mt-2 w-50 lg:w-80 w-[calc(100vw-2rem)] max-w-sm bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
                       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h3>
                       </div>
