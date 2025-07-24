@@ -161,68 +161,66 @@ const Navbar = ({ onMenuClick }) => {
                   </button>
                   
                   {/* Notifications dropdown */}
-{showNotifications && (
-  <div className="absolute right-0 mt-2
-                  w-[65vw]          // Slightly less than full screen width
-                  max-w-[200px]     // But never wider than 200px
-                  bg-white dark:bg-gray-800 
-                  rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 
-                  z-50
-                  left-[50%]        // Center horizontally
-                  translate-x-[-50%] // Adjust for exact centering
-                  sm:left-auto sm:translate-x-0 sm:w-80"> {/* Desktop styles */}
-    
-    {/* Header - now with tighter padding */}
-    <div className="p-2 sm:p-3 border-b border-gray-200 dark:border-gray-700">
-      <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white truncate">
-        Notifications
-      </h3>
-    </div>
-    
-    {/* Notifications list - now with constrained text */}
-    <div className="max-h-[50vh] overflow-y-auto">
-      {notifications.length === 0 ? (
-        <div className="p-2 sm:p-3 text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-          No notifications
-        </div>
-      ) : (
-        notifications.slice(0, 5).map((notification) => (
-          <div
-            key={notification._id}
-            className={`p-2 sm:p-3 border-b border-gray-200 dark:border-gray-700 
-                       hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer
-                       ${!notification.isRead ? "bg-blue-50 dark:bg-blue-900/20" : ""}`}
-          >
-            {/* Title - now single line with ellipsis if too long */}
-            <h4 className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm truncate">
-              {notification.title}
-            </h4>
-            {/* Message - now breaks words and limits to 3 lines max */}
-            <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-1 line-clamp-3 break-words">
-              {notification.message}
-            </p>
-            {/* Date - smaller text */}
-            <p className="text-gray-500 dark:text-gray-500 text-[0.65rem] sm:text-xs mt-1">
-              {new Date(notification.createdAt).toLocaleDateString()}
-            </p>
-          </div>
-        ))
-      )}
-    </div>
-    
-    {/* Footer - now more compact */}
-    {notifications.length > 5 && (
-      <div className="p-2 sm:p-3 border-t border-gray-200 dark:border-gray-700">
-        <Link
-          to="/notifications"
-          className="text-green-600 dark:text-green-400 text-xs sm:text-sm hover:underline block text-center"
-        >
-          View all
-        </Link>
-      </div>
-    )}
-  </div>
-)}
+                  {showNotifications && (
+                    <div className="absolute right-0 mt-2
+                                    w-48
+                                    bg-white dark:bg-gray-800 
+                                    rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 
+                                    z-50
+                                    left-[50%]        // Center horizontally
+                                    translate-x-[-50%] // Adjust for exact centering
+                                    sm:left-auto sm:translate-x-0 sm:w-80">
+                      {/* Header */}
+                      <div className="p-2 sm:p-3 border-b border-gray-200 dark:border-gray-700">
+                        <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white truncate">
+                          Notifications
+                        </h3>
+                      </div>
+                      
+                      {/* Notifications */}
+                      <div className="max-h-[50vh] overflow-y-auto">
+                        {notifications.length === 0 ? (
+                          <div className="p-2 sm:p-3 text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                            No notifications
+                          </div>
+                        ) : (
+                          notifications.slice(0, 5).map((notification) => (
+                            <div
+                              key={notification._id}
+                              className={`p-2 sm:p-3 border-b border-gray-200 dark:border-gray-700 
+                                        hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer
+                                        ${!notification.isRead ? "bg-blue-50 dark:bg-blue-900/20" : ""}`}
+                            >
+                              {/* Title */}
+                              <h4 className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm truncate">
+                                {notification.title}
+                              </h4>
+                              {/* Message */}
+                              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-1 line-clamp-3 break-words">
+                                {notification.message}
+                              </p>
+                              {/* Date */}
+                              <p className="text-gray-500 dark:text-gray-500 text-[0.65rem] sm:text-xs mt-1">
+                                {new Date(notification.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                      
+                      {/* Footer - now more compact */}
+                      {notifications.length > 5 && (
+                        <div className="p-2 sm:p-3 border-t border-gray-200 dark:border-gray-700">
+                          <Link
+                            to="/notifications"
+                            className="text-green-600 dark:text-green-400 text-xs sm:text-sm hover:underline block text-center"
+                          >
+                            View all
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* User menu */}
