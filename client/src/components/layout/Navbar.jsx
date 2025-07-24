@@ -161,55 +161,72 @@ const Navbar = ({ onMenuClick }) => {
                   </button>
                   
                   {/* Notifications dropdown */}
-                  {showNotifications && (
-                    <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-h-[60vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
-                      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h3>
-                      </div>
-                      <div className="max-h-96 overflow-y-auto">
-                        {notifications.length === 0 ? (
-                          <div className="p-4 text-center text-gray-500 dark:text-gray-400">No notifications</div>
-                        ) : (
-                          notifications.slice(0, 5).map((notification) => (
-                            <div
-                              key={notification._id}
-                              className={`p-4 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer ${
-                                !notification.isRead ? "bg-blue-50 dark:bg-blue-900/20" : ""
-                              }`}
-                              onClick={() => {
-                                if (notification.type === 'chat_message' && notification.data?.chatId) {
-                                  navigate(`/chat?chatId=${notification.data.chatId}`);
-                                  markAsRead(notification._id);
-                                  setShowNotifications(false);
-                                } else {
-                                  markAsRead(notification._id);
-                                }
-                              }}
-                            >
-                              <h4 className="font-medium text-gray-900 dark:text-white text-sm">
-                                {notification.title}
-                              </h4>
-                              <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">{notification.message}</p>
-                              <p className="text-gray-500 dark:text-gray-500 text-xs mt-2">
-                                {new Date(notification.createdAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                      {notifications.length > 5 && (
-                        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-                          <Link
-                            to="/notifications"
-                            className="text-green-600 dark:text-green-400 text-sm hover:underline"
-                            onClick={() => setShowNotifications(false)}
-                          >
-                            View all notifications
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                  )}
+{showNotifications && (
+  <div className="absolute right-0 mt-2 
+                  w-[280px]          // Default width
+                  max-w-[90vw]       // Never exceed screen width
+                  sm:w-80            // Slightly wider on larger screens
+                  bg-white dark:bg-gray-800 
+                  rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 
+                  z-50 transform -translate-x-1/4 sm:translate-x-0">
+    {/* Header */}
+    <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700">
+      <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
+        Notifications
+      </h3>
+    </div>
+    
+    {/* Notifications list */}
+    <div className="max-h-[60vh] overflow-y-auto">
+      {notifications.length === 0 ? (
+        <div className="p-3 sm:p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+          No notifications
+        </div>
+      ) : (
+        notifications.slice(0, 5).map((notification) => (
+          <div
+            key={notification._id}
+            className={`p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 
+                       hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer
+                       ${!notification.isRead ? "bg-blue-50 dark:bg-blue-900/20" : ""}`}
+            onClick={() => {
+              if (notification.type === 'chat_message' && notification.data?.chatId) {
+                navigate(`/chat?chatId=${notification.data.chatId}`);
+                markAsRead(notification._id);
+                setShowNotifications(false);
+              } else {
+                markAsRead(notification._id);
+              }
+            }}
+          >
+            <h4 className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm">
+              {notification.title}
+            </h4>
+            <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-1">
+              {notification.message}
+            </p>
+            <p className="text-gray-500 dark:text-gray-500 text-xxs sm:text-xs mt-1 sm:mt-2">
+              {new Date(notification.createdAt).toLocaleDateString()}
+            </p>
+          </div>
+        ))
+      )}
+    </div>
+    
+    {/* Footer */}
+    {notifications.length > 5 && (
+      <div className="p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700">
+        <Link
+          to="/notifications"
+          className="text-green-600 dark:text-green-400 text-xs sm:text-sm hover:underline"
+          onClick={() => setShowNotifications(false)}
+        >
+          View all notifications
+        </Link>
+      </div>
+    )}
+  </div>
+)}
                 </div>
 
                 {/* User menu */}
