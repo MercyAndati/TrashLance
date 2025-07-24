@@ -163,8 +163,8 @@ const Navbar = ({ onMenuClick }) => {
                   {/* Notifications dropdown */}
 {showNotifications && (
   <div className="absolute right-0 mt-2
-                  w-[85vw]          // Slightly less than full screen width
-                  max-w-[300px]     // But never wider than 300px
+                  w-[65vw]          // Slightly less than full screen width
+                  max-w-[200px]     // But never wider than 200px
                   bg-white dark:bg-gray-800 
                   rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 
                   z-50
