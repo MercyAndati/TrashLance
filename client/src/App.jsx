@@ -24,7 +24,7 @@ import Profile from "./pages/Profile"
 import Bookings from "./pages/Bookings"
 import BookingDetails from "./pages/BookingDetails"
 import BookingCreate from "./pages/BookingCreate";
-import Posts from "././pages/Posts"
+import Posts from "./pages/Posts"
 import PostDetails from "./pages/PostDetails"
 import CreatePost from "./pages/CreatePost"
 import Chat from "./pages/Chat"
