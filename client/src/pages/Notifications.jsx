@@ -1,7 +1,7 @@
 "use client"
 import { createContext, useContext, useState, useEffect } from "react"
 import api from "../services/api"
-import { useAuth } from "./AuthContext"
+import { useAuth } from '../contexts/AuthContext';
 import io from "socket.io-client"
 import { Bell } from "lucide-react"
 
