@@ -31,7 +31,6 @@ const Chat = () => {
   // Initialize Socket.IO connection
   useEffect(() => {
     const socketUrl = import.meta.env.PROD ? "https://trashlance.onrender.com" : "http://localhost:5000"
-
     const newSocket = io(socketUrl, {
       transports: ["websocket", "polling"],
       withCredentials: true,
@@ -141,7 +140,6 @@ const Chat = () => {
     if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1]
       const isFromCurrentUser = lastMessage.sender === user._id
-
       // Only auto-scroll if the last message is from current user
       if (isFromCurrentUser) {
         scrollToBottom()
@@ -165,8 +163,8 @@ const Chat = () => {
       const chats = response.data.data?.chats || []
       setConversations(chats)
 
-      // If a target user is specified, try to find or create a chat with them
-      if (targetUserId) {
+      // If a target user is specified and it's a valid ID (not the string "undefined")
+      if (targetUserId && targetUserId !== "undefined") {
         const existingChat = chats.find((chat) => chat.participants.some((p) => p.user._id === targetUserId))
         if (existingChat) {
           setActiveConversation(existingChat)
@@ -185,6 +183,12 @@ const Chat = () => {
   }
 
   const startChatWithUser = async (userId) => {
+    // Defensive check: ensure userId is valid before proceeding
+    if (!userId || userId === "undefined") {
+      console.error("Cannot start chat: Invalid user ID provided.", userId)
+      return
+    }
+
     // Prevent multiple simultaneous calls
     if (creatingChatRef.current) {
       console.log("Chat creation already in progress, skipping...")
@@ -194,16 +198,13 @@ const Chat = () => {
     try {
       creatingChatRef.current = true
       console.log("Starting chat with user:", userId)
-
-      const response = await api.post("/chats/start", {
+      const response = await api.post(`/chats/start`, {
         providerId: userId,
       })
       const newChat = response.data.data.chat
       console.log("Chat created successfully:", newChat._id)
-
       updateConversationsList(newChat)
       setActiveConversation(newChat)
-
       // Join chat room for real-time updates
       if (socket) {
         socket.emit("join-chat", newChat._id)
@@ -220,7 +221,6 @@ const Chat = () => {
       // Don't show loading spinner for message fetch to avoid visible reload
       const response = await api.get(`/chats/${conversationId}/messages`)
       setMessages(response.data.data?.messages || [])
-
       // Join chat room for real-time updates
       if (socket) {
         socket.emit("join-chat", conversationId)
@@ -248,6 +248,7 @@ const Chat = () => {
     const messageContent = newMessage.trim()
     setSendingMessage(true)
     setNewMessage("")
+
     try {
       const response = await api.post(`/chats/${activeConversation._id}/messages`, {
         content: messageContent,
@@ -271,13 +272,12 @@ const Chat = () => {
 
   const deleteMessage = async (messageId) => {
     if (!activeConversation || deletingMessage === messageId) return
+
     setDeletingMessage(messageId)
     try {
       await api.delete(`/chats/${activeConversation._id}/messages/${messageId}`)
-
       // Remove message from local state
       setMessages((prev) => prev.filter((msg) => msg._id !== messageId))
-
       // Emit deletion to other users via socket
       if (socket) {
         socket.emit("delete-message", {
@@ -296,7 +296,6 @@ const Chat = () => {
     if (messagesEndRef.current && messagesContainerRef.current) {
       const container = messagesContainerRef.current
       const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100
-
       // Only auto-scroll if user is already near bottom or if it's a new message from current user
       if (isAtBottom) {
         // Use requestAnimationFrame for smoother scrolling
@@ -311,10 +310,8 @@ const Chat = () => {
     if (!date) return ""
     const messageDate = new Date(date)
     if (isNaN(messageDate.getTime())) return ""
-
     const now = new Date()
     const isToday = messageDate.toDateString() === now.toDateString()
-
     if (isToday) {
       return messageDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     } else {
@@ -345,17 +342,18 @@ const Chat = () => {
       {showSidebar && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" onClick={() => setShowSidebar(false)} />
       )}
+
       {/* Conversations List */}
       <div
         className={`
-        ${showSidebar ? "translate-x-0" : "-translate-x-full"}
-        md:translate-x-0 md:static fixed top-0 left-0 z-50
-        w-full md:w-1/3 lg:w-1/4 xl:w-1/3
-        bg-white dark:bg-gray-800
-        border-r border-gray-200 dark:border-gray-700
-        flex flex-col h-full
-        transition-transform duration-300 ease-in-out
-      `}
+          ${showSidebar ? "translate-x-0" : "-translate-x-full"}
+          md:translate-x-0 md:static fixed top-0 left-0 z-50
+          w-full md:w-1/3 lg:w-1/4 xl:w-1/3
+          bg-white dark:bg-gray-800
+          border-r border-gray-200 dark:border-gray-700
+          flex flex-col h-full
+          transition-transform duration-300 ease-in-out
+        `}
       >
         {/* Header */}
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
@@ -379,19 +377,21 @@ const Chat = () => {
             />
           </div>
         </div>
+
         {/* Conversations */}
         <div className="flex-1 overflow-y-auto">
           {conversations.length === 0 ? (
             <div className="p-8 text-center">
               <p className="text-gray-500 dark:text-gray-400">No conversations yet</p>
-              {targetUserId && (
-                <button
-                  onClick={() => startChatWithUser(targetUserId)}
-                  className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  Start New Conversation
-                </button>
-              )}
+              {targetUserId &&
+                targetUserId !== "undefined" && ( // Only show if a valid targetUserId is present
+                  <button
+                    onClick={() => startChatWithUser(targetUserId)}
+                    className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Start New Conversation
+                  </button>
+                )}
             </div>
           ) : (
             conversations.map((conversation) => {
@@ -432,6 +432,7 @@ const Chat = () => {
           )}
         </div>
       </div>
+
       {/* Chat Area */}
       <div className="flex-1 flex flex-col h-full min-w-0">
         {activeConversation ? (
@@ -479,8 +480,9 @@ const Chat = () => {
                 </div>
               </div>
             </div>
+
             {/* Messages */}
-            <div 
+            <div
               className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 bg-gray-50 dark:bg-gray-900 min-h-0 w-full"
               ref={messagesContainerRef}
             >
@@ -525,6 +527,7 @@ const Chat = () => {
               ))}
               <div ref={messagesEndRef} />
             </div>
+
             {/* Message Input */}
             <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 md:p-4">
               <form onSubmit={sendMessage} className="flex items-center space-x-2">
