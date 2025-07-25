@@ -11,6 +11,12 @@ https://www.pi.inc/docs/334525849882570?t=9e56a51a61f78a16ed7b4dee47e991b0# You'
 <video controls src="service provider onboarding.mp4" title="Title"></video>
 <video controls src="service_provider dashboard.mp4" title="Title"></video>
 <video controls src="admin dashboard.mp4" title="Title"></video>
+
+## How to View Demo Videos  
+1. Click the filename (e.g., `demo.mp4`).  
+2. Click **"Download"** or **"View Raw"**.  
+3. Open the file locally with a video player (e.g., VLC).  
+
 # frontend  
 - https://trash-lance.vercel.app/
 # backend  
