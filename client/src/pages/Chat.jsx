@@ -19,8 +19,6 @@ const Chat = () => {
   const [deletingMessage, setDeletingMessage] = useState(null)
   const [showSidebar, setShowSidebar] = useState(false)
   const messagesEndRef = useRef(null)
-  const fetchTimeoutRef = useRef(null)
-  // const sentMessagesRef = useRef(new Set()) // No longer needed with new optimistic update
   const messagesContainerRef = useRef(null)
   const creatingChatRef = useRef(false) // Prevent multiple simultaneous chat creation calls
 
@@ -58,28 +56,26 @@ const Chat = () => {
     socket.on("new-message", (data) => {
       // Only process if this is for the active conversation
       if (data.chatId === activeConversation?._id) {
-        // Assuming data.message.sender is an object with _id, consistent with `messages` state.
         const isFromCurrentUser = data.message.sender._id === user._id
 
-        setMessages((prev) => {
-          // Check if a message with this _id (from server) already exists
-          const messageExists = prev.some((msg) => msg._id === data.message._id)
-
-          if (!messageExists) {
-            // If the message is new and not from the current user, add it.
-            // Messages from the current user are handled by the API response in sendMessage.
-            if (!isFromCurrentUser) {
+        // *** CRITICAL FIX: Only add messages if they are NOT from the current user. ***
+        // Messages from the current user are handled by the API response in sendMessage.
+        if (!isFromCurrentUser) {
+          setMessages((prev) => {
+            // Add a check for the actual _id to prevent duplicates if the API response was very fast
+            // and the socket event was slightly delayed, but the message was already replaced.
+            const messageAlreadyInState = prev.some((msg) => msg._id === data.message._id)
+            if (!messageAlreadyInState) {
               setTimeout(() => {
                 markMessagesAsRead(data.chatId, [data.message._id])
               }, 1000)
               return [...prev, data.message]
             }
-            // If it's from the current user and doesn't exist, it means the optimistic update
-            // might have failed or was skipped, so add it. This is a fallback.
-            return [...prev, data.message]
-          }
-          return prev // Message already exists, do nothing (prevents duplicates)
-        })
+            return prev // Message already exists, do nothing
+          })
+        }
+        // If it's from the current user, we assume it's already handled by the API response.
+        // No need to add it via socket.
       } else {
         // Update conversation unread count for non-active chats
         setConversations((prev) =>
@@ -137,15 +133,6 @@ const Chat = () => {
     }
   }, [messages, user._id])
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current)
-      }
-    }
-  }, [])
-
   const fetchConversations = async () => {
     try {
       setLoading(true)
@@ -178,13 +165,11 @@ const Chat = () => {
       console.error("Cannot start chat: Invalid user ID provided.", userId)
       return
     }
-
     // Prevent multiple simultaneous calls
     if (creatingChatRef.current) {
       console.log("Chat creation already in progress, skipping...")
       return
     }
-
     try {
       creatingChatRef.current = true
       console.log("Starting chat with user:", userId)
@@ -276,7 +261,6 @@ const Chat = () => {
 
   const deleteMessage = async (messageId) => {
     if (!activeConversation || deletingMessage === messageId) return
-
     setDeletingMessage(messageId)
     try {
       await api.delete(`/chats/${activeConversation._id}/messages/${messageId}`)
@@ -346,7 +330,6 @@ const Chat = () => {
       {showSidebar && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" onClick={() => setShowSidebar(false)} />
       )}
-
       {/* Conversations List */}
       <div
         className={`
@@ -381,7 +364,6 @@ const Chat = () => {
             />
           </div>
         </div>
-
         {/* Conversations */}
         <div className="flex-1 overflow-y-auto">
           {conversations.length === 0 ? (
@@ -436,7 +418,6 @@ const Chat = () => {
           )}
         </div>
       </div>
-
       {/* Chat Area */}
       <div className="flex-1 flex flex-col h-full min-w-0">
         {activeConversation ? (
@@ -484,15 +465,14 @@ const Chat = () => {
                 </div>
               </div>
             </div>
-
             {/* Messages */}
             <div
               className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 bg-gray-50 dark:bg-gray-900 min-h-0 w-full"
               ref={messagesContainerRef}
             >
-              {messages.map((message, index) => (
+              {messages.map((message) => (
                 <div
-                  key={`${message._id}-${message.sender._id}-${index}`}
+                  key={message._id}
                   className={`flex ${message.sender._id === user._id ? "justify-end" : "justify-start"}`}
                 >
                   <div
@@ -531,7 +511,6 @@ const Chat = () => {
               ))}
               <div ref={messagesEndRef} />
             </div>
-
             {/* Message Input */}
             <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 md:p-4">
               <form onSubmit={sendMessage} className="flex items-center space-x-2">
@@ -558,7 +537,9 @@ const Chat = () => {
                 <button
                   type="submit"
                   disabled={!newMessage.trim() || sendingMessage}
-                  className={`p-2 bg-green-600 text-white rounded-full hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${sendingMessage ? "pointer-events-none" : ""}`}
+                  className={`p-2 bg-green-600 text-white rounded-full hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+                    sendingMessage ? "pointer-events-none" : ""
+                  }`}
                 >
                   {sendingMessage ? <LoadingSpinner size="sm" /> : <Send className="w-5 h-5" />}
                 </button>
