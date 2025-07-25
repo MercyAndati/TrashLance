@@ -5,7 +5,7 @@ import { useAuth } from "../contexts/AuthContext"
 import { useSearchParams } from "react-router-dom"
 import api from "../services/api"
 import LoadingSpinner from "../components/common/LoadingSpinner"
-import io from "socket.io-client"
+import socket from "../services/socket" // Import the shared socket instance
 
 const Chat = () => {
   const { user } = useAuth()
@@ -17,7 +17,7 @@ const Chat = () => {
   const [loading, setLoading] = useState(true)
   const [sendingMessage, setSendingMessage] = useState(false)
   const [deletingMessage, setDeletingMessage] = useState(null)
-  const [socket, setSocket] = useState(null)
+  // const [socket, setSocket] = useState(null) // No longer needed, using shared instance
   const [showSidebar, setShowSidebar] = useState(false)
   const messagesEndRef = useRef(null)
   const fetchTimeoutRef = useRef(null)
@@ -28,32 +28,15 @@ const Chat = () => {
   // Get user parameter from URL if provided
   const targetUserId = searchParams.get("user")
 
-  // Initialize Socket.IO connection
+  // Initialize Socket.IO connection (now handled by the shared instance)
   useEffect(() => {
-    const socketUrl = import.meta.env.PROD ? "https://trashlance.onrender.com" : "http://localhost:5000"
-    const newSocket = io(socketUrl, {
-      transports: ["websocket", "polling"],
-      withCredentials: true,
-    })
-    setSocket(newSocket)
-
     // Join user's room for notifications
     if (user?._id) {
-      newSocket.emit("join", user._id)
+      socket.emit("join", user._id)
     }
 
-    // Add debug listeners for chat.jsx as well
-    newSocket.on("connect", () => {
-      console.log("Chat Socket connected:", newSocket.id)
-    })
-    newSocket.on("connect_error", (error) => {
-      console.error("Chat Socket connection error:", error)
-    })
-    newSocket.on("disconnect", (reason) => {
-      console.log("Chat Socket disconnected:", reason)
-    })
-
-    return () => newSocket.close()
+    // No need for debug listeners here, they are in the shared socket.js
+    // No need for return () => newSocket.close(), as the shared socket is persistent
   }, [user])
 
   // Optimized conversation update without full reload
