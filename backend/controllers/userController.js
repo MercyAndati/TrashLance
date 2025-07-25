@@ -10,14 +10,12 @@ const getUserById = async (req, res) => {
     const user = await User.findById(req.params.id)
       .select("-password -refreshToken")
       .populate("serviceProvider.servicesOffered", "name category")
-
     if (!user) {
       return res.status(404).json({
         success: false,
         message: "User not found",
       })
     }
-
     res.json({
       success: true,
       data: user,
@@ -38,14 +36,12 @@ const updateUserProfile = async (req, res) => {
     const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true, runValidators: true }).select(
       "-password -refreshToken",
     )
-
     if (!user) {
       return res.status(404).json({
         success: false,
         message: "User not found",
       })
     }
-
     res.json({
       success: true,
       message: "Profile updated successfully",
@@ -69,11 +65,9 @@ const uploadAvatar = async (req, res) => {
         message: "No file uploaded",
       })
     }
-
     const user = await User.findByIdAndUpdate(req.user._id, { avatar: req.file.path }, { new: true }).select(
       "-password -refreshToken",
     )
-
     res.json({
       success: true,
       message: "Avatar uploaded successfully",
@@ -92,7 +86,6 @@ const uploadAvatar = async (req, res) => {
 const getUserStats = async (req, res) => {
   try {
     const userId = req.user._id
-
     const [bookings, services, completedBookings, upcomingBookings, totalEarnings, monthlyEarnings] = await Promise.all(
       [
         Booking.countDocuments({
@@ -125,7 +118,6 @@ const getUserStats = async (req, res) => {
           : Promise.resolve(0),
       ],
     )
-
     const stats = {
       bookings,
       services,
@@ -136,7 +128,6 @@ const getUserStats = async (req, res) => {
       rating: req.user.serviceProvider?.rating?.average || 0,
       points: req.user.points || 0,
     }
-
     res.json({
       success: true,
       data: stats,
@@ -156,7 +147,6 @@ const searchUsers = async (req, res) => {
     const { query, role } = req.query
     const page = Number.parseInt(req.query.page) || 1
     const limit = Number.parseInt(req.query.limit) || 10
-
     const searchQuery = {}
     if (query) {
       searchQuery.$or = [{ username: { $regex: query, $options: "i" } }, { email: { $regex: query, $options: "i" } }]
@@ -164,14 +154,11 @@ const searchUsers = async (req, res) => {
     if (role) {
       searchQuery.role = role
     }
-
     const users = await User.find(searchQuery)
       .select("-password -refreshToken")
       .skip((page - 1) * limit)
       .limit(limit)
-
     const total = await User.countDocuments(searchQuery)
-
     res.json({
       success: true,
       data: {
@@ -198,20 +185,16 @@ const getLeaderboard = async (req, res) => {
   try {
     const category = req.query.category || "points"
     const timeframe = req.query.timeframe || "all"
-
     const query = {}
     let sort = {}
-
     // Filter by role if provided
     if (req.query.role && req.query.role !== "all") {
       query.role = req.query.role
     }
-
     // Only filter by role for service_provider-specific categories
     if (category === "earnings" || category === "rating") {
       query.role = "service_provider"
     }
-
     // Sorting logic
     if (category === "rating") {
       sort = { "serviceProvider.rating.average": -1 }
@@ -224,13 +207,11 @@ const getLeaderboard = async (req, res) => {
     } else {
       sort = { points: -1 }
     }
-
     // Fetch leaderboard
     const leaderboard = await User.find(query)
       .sort(sort)
       .limit(50)
       .select("username avatar points role serviceProvider.rating earnings reports bookings")
-
     // Find current user's rank
     let userRank = null
     if (req.user) {
@@ -247,7 +228,6 @@ const getLeaderboard = async (req, res) => {
         }
       }
     }
-
     res.json({
       success: true,
       data: {
@@ -273,7 +253,6 @@ const completeOnboarding = async (req, res) => {
     console.log("Received onboarding data:", req.body)
     console.log("Company name from body:", req.body.companyName)
     console.log("Subscription from body:", req.body.subscription)
-
     // Use req.body directly since we're now sending JSON
     const {
       companyName,
@@ -285,7 +264,6 @@ const completeOnboarding = async (req, res) => {
       subscription,
       pricing,
     } = req.body
-
     // Validate required fields
     console.log("Validation check:", { companyName, servicesOffered, pricing })
     console.log("Subscription mapping:", {
@@ -299,28 +277,24 @@ const completeOnboarding = async (req, res) => {
               ? "Premium"
               : "Free",
     })
-
     if (!companyName) {
       return res.status(400).json({
         success: false,
         message: "Missing required field: company name",
       })
     }
-
     if (!servicesOffered) {
       return res.status(400).json({
         success: false,
         message: "Missing required field: services offered",
       })
     }
-
     if (!pricing) {
       return res.status(400).json({
         success: false,
         message: "Missing required field: pricing",
       })
     }
-
     // Update user with service provider information
     const updatedUser = await User.findByIdAndUpdate(
       req.user._id,
@@ -350,14 +324,12 @@ const completeOnboarding = async (req, res) => {
       },
       { new: true, runValidators: true },
     ).select("-password -refreshToken")
-
     if (!updatedUser) {
       return res.status(404).json({
         success: false,
         message: "User not found",
       })
     }
-
     // Create services for the provider based on selected service types
     if (servicesOffered && servicesOffered.length > 0) {
       const serviceTypes = {
@@ -388,7 +360,6 @@ const completeOnboarding = async (req, res) => {
           category: "construction_debris",
         },
       }
-
       const servicePromises = servicesOffered.map((serviceType) => {
         const serviceInfo = serviceTypes[serviceType]
         return Service.create({
@@ -419,15 +390,12 @@ const completeOnboarding = async (req, res) => {
           isActive: true,
         })
       })
-
       const createdServices = await Promise.all(servicePromises)
-
       // Update user with service references
       await User.findByIdAndUpdate(req.user._id, {
         "serviceProvider.servicesOffered": createdServices.map((service) => service._id),
       })
     }
-
     // Send notification to admin for verification (optional - can be implemented later)
     try {
       // Find an admin user to send notification to
@@ -448,7 +416,6 @@ const completeOnboarding = async (req, res) => {
     } catch (notificationError) {
       console.log("Notification sending failed (non-critical):", notificationError.message)
     }
-
     res.json({
       success: true,
       message: "Onboarding completed successfully",
@@ -469,26 +436,21 @@ const rateCollector = async (req, res) => {
   try {
     const { star, comment } = req.body
     const collector = await User.findById(req.params.id)
-
     if (!collector || collector.role !== "service_provider") {
       return res.status(404).json({
         success: false,
         message: "Collector not found",
       })
     }
-
     const pointsMap = { 1: 0, 2: 5, 3: 10, 4: 15, 5: 20 }
-
     // Check if user has already rated this collector
     const existingIndex = collector.ratings.findIndex((r) => r.citizenId.toString() === req.user._id.toString())
-
     if (existingIndex !== -1) {
       // Update existing rating
       const oldStar = collector.ratings[existingIndex].star
       collector.ratings[existingIndex].star = star
       collector.ratings[existingIndex].comment = comment
       collector.ratings[existingIndex].ratedAt = new Date()
-
       // Update points (remove old, add new)
       collector.points -= pointsMap[oldStar] || 0
       collector.points += pointsMap[star] || 0
@@ -501,15 +463,12 @@ const rateCollector = async (req, res) => {
       })
       collector.points += pointsMap[star] || 0
     }
-
     // Recalculate rating average and count
     const totalRatings = collector.ratings.length
     const average = collector.ratings.reduce((sum, r) => sum + r.star, 0) / totalRatings
     collector.serviceProvider.rating.average = Math.round(average * 10) / 10
     collector.serviceProvider.rating.count = totalRatings
-
     await collector.save()
-
     // Send comment notification if there's a comment in a separate try/catch
     try {
       if (comment && comment.trim()) {
@@ -529,7 +488,6 @@ const rateCollector = async (req, res) => {
       console.error("Error sending notification after rating submission (non-critical):", notificationError)
       // Do NOT re-throw, as the main rating submission was successful.
     }
-
     res.json({
       success: true,
       message: existingIndex !== -1 ? "Rating updated successfully" : "Rating submitted successfully",
@@ -543,6 +501,66 @@ const rateCollector = async (req, res) => {
   }
 }
 
+// Delete a specific rating for a collector
+const deleteRating = async (req, res) => {
+  try {
+    const { id: collectorId, reviewId } = req.params; // collectorId is the service provider's ID, reviewId is the rating's _id
+
+    const collector = await User.findById(collectorId);
+
+    if (!collector || collector.role !== "service_provider") {
+      return res.status(404).json({
+        success: false,
+        message: "Collector not found or not a service provider",
+      });
+    }
+
+    // Find the index of the rating to be deleted
+    const ratingIndex = collector.ratings.findIndex(
+      (r) => r._id.toString() === reviewId && r.citizenId.toString() === req.user._id.toString()
+    );
+
+    if (ratingIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: "Rating not found or you don't have permission to delete it",
+      });
+    }
+
+    const deletedRating = collector.ratings[ratingIndex];
+    const pointsMap = { 1: 0, 2: 5, 3: 10, 4: 15, 5: 20 }; // Re-use points map
+
+    // Remove points associated with the deleted rating
+    collector.points -= pointsMap[deletedRating.star] || 0;
+
+    // Remove the rating from the array
+    collector.ratings.splice(ratingIndex, 1);
+
+    // Recalculate rating average and count
+    const totalRatings = collector.ratings.length;
+    if (totalRatings > 0) {
+      const average = collector.ratings.reduce((sum, r) => sum + r.star, 0) / totalRatings;
+      collector.serviceProvider.rating.average = Math.round(average * 10) / 10;
+    } else {
+      collector.serviceProvider.rating.average = 0; // No ratings left
+    }
+    collector.serviceProvider.rating.count = totalRatings;
+
+    await collector.save();
+
+    res.json({
+      success: true,
+      message: "Rating deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete rating",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
 // Get all unique locations from service providers
 const getLocations = async (req, res) => {
   try {
@@ -550,7 +568,6 @@ const getLocations = async (req, res) => {
       role: "service_provider",
       "serviceProvider.serviceLocations": { $exists: true, $ne: "" },
     })
-
     // Filter out empty locations and split comma-separated locations
     const allLocations = []
     locations.forEach((locationString) => {
@@ -559,10 +576,8 @@ const getLocations = async (req, res) => {
         allLocations.push(...locationArray)
       }
     })
-
     // Remove duplicates and empty strings
     const uniqueLocations = [...new Set(allLocations)].filter((loc) => loc.length > 0)
-
     res.json({
       success: true,
       data: uniqueLocations,
@@ -582,7 +597,6 @@ const getCollectorsByLocation = async (req, res) => {
   try {
     const { location } = req.params
     const decodedLocation = decodeURIComponent(location)
-
     const collectors = await User.find({
       role: "service_provider",
       "serviceProvider.serviceLocations": { $regex: decodedLocation, $options: "i" },
@@ -592,7 +606,6 @@ const getCollectorsByLocation = async (req, res) => {
       )
       .populate("serviceProvider.servicesOffered", "name category")
       .sort({ "serviceProvider.rating.average": -1 })
-
     res.json({
       success: true,
       data: collectors,
@@ -620,7 +633,6 @@ const getUserServices = async (req, res) => {
 const deleteOwnAccount = async (req, res) => {
   try {
     const userId = req.user._id
-
     // Delete related data (optional, but recommended)
     await Promise.all([
       Booking.deleteMany({ $or: [{ customer: userId }, { serviceProvider: userId }] }),
@@ -628,7 +640,6 @@ const deleteOwnAccount = async (req, res) => {
       Notification.deleteMany({ user: userId }),
       User.findByIdAndDelete(userId),
     ])
-
     res.json({ success: true, message: "Account and related data deleted successfully." })
   } catch (error) {
     res.status(500).json({
@@ -652,4 +663,5 @@ module.exports = {
   getCollectorsByLocation,
   getUserServices,
   deleteOwnAccount,
+  deleteRating, // Export the new function
 }

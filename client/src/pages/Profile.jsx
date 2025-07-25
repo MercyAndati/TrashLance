@@ -1,7 +1,6 @@
 "use client"
-
 import { useState, useEffect } from "react"
-import { useParams, Link } from "react-router-dom" 
+import { useParams, Link } from "react-router-dom"
 import { Mail, Phone, MapPin, Star, Calendar, Package, Edit3, Camera, Shield, Award, Clock } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 import api from "../services/api"
@@ -21,7 +20,7 @@ const Profile = () => {
 
   useEffect(() => {
     if (isOwnProfile) {
-      console.log('Current user data:', currentUser)
+      console.log("Current user data:", currentUser)
       setProfile(currentUser)
       setLoading(false)
     } else {
@@ -59,7 +58,7 @@ const Profile = () => {
   const handleSaveProfile = async () => {
     try {
       const response = await api.put("/users/profile", editForm)
-      console.log('Profile update response:', response.data.data)
+      console.log("Profile update response:", response.data.data)
       updateUser(response.data.data)
       setProfile(response.data.data)
       setEditing(false)
@@ -80,7 +79,6 @@ const Profile = () => {
       const response = await api.post("/users/avatar", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       })
-
       const updatedUser = { ...profileUser, avatar: response.data.data.avatar }
       updateUser(updatedUser)
       setProfile(updatedUser)
@@ -88,6 +86,28 @@ const Profile = () => {
       console.error("Failed to upload avatar:", error)
     } finally {
       setUploading(false)
+    }
+  }
+
+  // New function to handle review deletion
+  const handleDeleteReview = async (reviewId) => {
+    try {
+      if (!window.confirm("Are you sure you want to delete this review?")) {
+        return
+      }
+
+      await api.delete(`/users/${profileUser._id}/rate/${reviewId}`)
+      console.log("Review deleted successfully!")
+
+      // After deletion, refresh the profile data to update the UI
+      if (isOwnProfile) {
+        updateUser() // If it's the current user's profile, update the global user state
+      } else {
+        fetchProfile() // If viewing another user's profile, refetch their data
+      }
+    } catch (error) {
+      console.error("Failed to delete review:", error)
+      alert("Failed to delete review. Please try again.")
     }
   }
 
@@ -145,7 +165,6 @@ const Profile = () => {
                   )}
                 </div>
               </div>
-
               {/* Profile Info */}
               <div className="flex-1">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -167,7 +186,6 @@ const Profile = () => {
                       </div>
                     )}
                   </div>
-
                   {isOwnProfile && (
                     <div className="flex items-center space-x-2">
                       <button
@@ -197,27 +215,25 @@ const Profile = () => {
             <div className="flex items-center justify-end space-x-3 mt-4 sm:mt-0 px-6 pb-4">
               <button
                 className="px-4 py-2 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-                onClick={() => window.location.href = `/chat?user=${profileUser._id}`}
+                onClick={() => (window.location.href = `/chat?user=${profileUser._id}`)}
               >
                 Send Message
               </button>
               <button
                 className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                onClick={() => window.location.href = `/bookings/create?provider=${profileUser._id}`}
+                onClick={() => (window.location.href = `/bookings/create?provider=${profileUser._id}`)}
               >
                 Book Service
               </button>
             </div>
           )}
         </div>
-
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* Basic Information */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Basic Information</h2>
-
               {editing ? (
                 <div className="space-y-4">
                   <div>
@@ -277,12 +293,10 @@ const Profile = () => {
                 </div>
               )}
             </div>
-
             {/* Service Provider Details */}
             {profileUser.role === "service_provider" && profileUser.serviceProvider && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Service Provider Details</h2>
-
                 <div className="space-y-4">
                   {profileUser.serviceProvider.companyName && (
                     <div>
@@ -290,7 +304,6 @@ const Profile = () => {
                       <p className="text-gray-600 dark:text-gray-400">{profileUser.serviceProvider.companyName}</p>
                     </div>
                   )}
-
                   <div>
                     <h3 className="font-medium text-gray-900 dark:text-white">Working Hours</h3>
                     <div className="grid grid-cols-2 gap-4 mt-2">
@@ -305,7 +318,6 @@ const Profile = () => {
                         ))}
                     </div>
                   </div>
-
                   <div>
                     <h3 className="font-medium text-gray-900 dark:text-white">Service Radius</h3>
                     {editing ? (
@@ -314,14 +326,18 @@ const Profile = () => {
                           type="number"
                           min="1"
                           max="100"
-                          value={editForm.serviceProvider?.serviceRadius || profileUser.serviceProvider.serviceRadius || 10}
-                          onChange={(e) => setEditForm({
-                            ...editForm,
-                            serviceProvider: {
-                              ...editForm.serviceProvider,
-                              serviceRadius: parseInt(e.target.value)
-                            }
-                          })}
+                          value={
+                            editForm.serviceProvider?.serviceRadius || profileUser.serviceProvider.serviceRadius || 10
+                          }
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              serviceProvider: {
+                                ...editForm.serviceProvider,
+                                serviceRadius: Number.parseInt(e.target.value),
+                              },
+                            })
+                          }
                           className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         />
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -334,21 +350,26 @@ const Profile = () => {
                       </p>
                     )}
                   </div>
-
                   {profileUser.serviceProvider.serviceLocations && (
                     <div>
                       <h3 className="font-medium text-gray-900 dark:text-white">Service Locations</h3>
                       {editing ? (
                         <div className="mt-2">
                           <textarea
-                            value={editForm.serviceProvider?.serviceLocations || profileUser.serviceProvider.serviceLocations || ""}
-                            onChange={(e) => setEditForm({
-                              ...editForm,
-                              serviceProvider: {
-                                ...editForm.serviceProvider,
-                                serviceLocations: e.target.value
-                              }
-                            })}
+                            value={
+                              editForm.serviceProvider?.serviceLocations ||
+                              profileUser.serviceProvider.serviceLocations ||
+                              ""
+                            }
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                serviceProvider: {
+                                  ...editForm.serviceProvider,
+                                  serviceLocations: e.target.value,
+                                },
+                              })
+                            }
                             className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                             placeholder="Enter locations separated by commas (e.g., Nairobi, Mombasa, Kisumu)"
                             rows={3}
@@ -359,7 +380,7 @@ const Profile = () => {
                         </div>
                       ) : (
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {profileUser.serviceProvider.serviceLocations.split(',').map((location, index) => (
+                          {profileUser.serviceProvider.serviceLocations.split(",").map((location, index) => (
                             <span
                               key={index}
                               className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200"
@@ -372,11 +393,10 @@ const Profile = () => {
                       )}
                     </div>
                   )}
-
                   {profileUser.serviceProvider.subscription && (
                     <div>
                       <h3 className="font-medium text-gray-900 dark:text-white">Subscription Plan</h3>
-                      {console.log('Profile subscription data:', profileUser.serviceProvider.subscription)}
+                      {console.log("Profile subscription data:", profileUser.serviceProvider.subscription)}
                       <span
                         className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
                           profileUser.serviceProvider.subscription.plan === "Premium"
@@ -393,45 +413,64 @@ const Profile = () => {
                 </div>
               </div>
             )}
-
             {/* Reviews Section for Customers - positioned below service provider details */}
-            {profileUser.role === 'service_provider' && profileUser.ratings && profileUser.ratings.length > 0 && (profileUser.role === "service_provider" && !isOwnProfile) && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Reviews</h2>
-                <div className="space-y-4">
-                  {profileUser.ratings.map((rating, idx) => (
-                    <div key={idx} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                      <div className="flex items-center mb-2">
-                        {[1,2,3,4,5].map(star => (
-                          <span key={star} className={`text-xl ${rating.star >= star ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
-                        ))}
-                        <span className="ml-2 text-gray-700 dark:text-gray-200 font-medium">{rating.star} / 5</span>
-                      </div>
-                      <div className="mb-2 text-gray-700 dark:text-gray-200">{rating.comment}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">By {rating.citizenId?.username || 'User'} on {rating.ratedAt ? new Date(rating.ratedAt).toLocaleDateString() : ''}</div>
-                      {currentUser && rating.citizenId && rating.citizenId.toString() === currentUser._id && (
-                        <div className="flex space-x-2 mt-2">
-                          <button className="btn-secondary" onClick={() => {/* trigger edit in BookingDetails or modal */}}>Edit</button>
-                          <button className="btn-danger" onClick={async () => {
-                            await api.post(`/users/${profileUser._id}/rate`, { star: 0, comment: "" });
-                            updateUser();
-                          }}>Delete</button>
+            {profileUser.role === "service_provider" &&
+              profileUser.ratings &&
+              profileUser.ratings.length > 0 &&
+              profileUser.role === "service_provider" &&
+              !isOwnProfile && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Reviews</h2>
+                  <div className="space-y-4">
+                    {profileUser.ratings.map(
+                      (
+                        rating, // Removed idx, using rating._id for key
+                      ) => (
+                        <div key={rating._id} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                          <div className="flex items-center mb-2">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <span
+                                key={star}
+                                className={`text-xl ${rating.star >= star ? "text-yellow-400" : "text-gray-300"}`}
+                              >
+                                ★
+                              </span>
+                            ))}
+                            <span className="ml-2 text-gray-700 dark:text-gray-200 font-medium">{rating.star} / 5</span>
+                          </div>
+                          <div className="mb-2 text-gray-700 dark:text-gray-200">{rating.comment}</div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            By {rating.citizenId?.username || "User"} on{" "}
+                            {rating.ratedAt ? new Date(rating.ratedAt).toLocaleDateString() : ""}
+                          </div>
+                          {currentUser && rating.citizenId && rating.citizenId.toString() === currentUser._id && (
+                            <div className="flex space-x-2 mt-2">
+                              <button
+                                className="btn-secondary"
+                                onClick={() => {
+                                  /* trigger edit in BookingDetails or modal */
+                                }}
+                              >
+                                Edit
+                              </button>
+                              <button className="btn-danger" onClick={() => handleDeleteReview(rating._id)}>
+                                Delete
+                              </button>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  ))}
+                      ),
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </div>
-
           {/* Sidebar */}
           {!(profileUser.role === "service_provider" && !isOwnProfile) && (
             <div className="space-y-8">
               {/* Stats */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Stats</h2>
-
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
@@ -440,7 +479,6 @@ const Profile = () => {
                     </div>
                     <span className="font-semibold text-gray-900 dark:text-white">{profileUser.points || 0}</span>
                   </div>
-
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -450,7 +488,6 @@ const Profile = () => {
                       {new Date(profileUser.createdAt).toLocaleDateString()}
                     </span>
                   </div>
-
                   {profileUser.role === "service_provider" && (
                     <>
                       <div className="flex items-center justify-between">
@@ -462,7 +499,6 @@ const Profile = () => {
                           {profileUser.serviceProvider?.servicesOffered?.length || 0}
                         </span>
                       </div>
-
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
@@ -476,33 +512,42 @@ const Profile = () => {
                   )}
                 </div>
               </div>
-
               {/* Reviews Section for Service Providers - positioned below stats in sidebar */}
-              {profileUser.role === 'service_provider' && profileUser.ratings && profileUser.ratings.length > 0 && (
+              {profileUser.role === "service_provider" && profileUser.ratings && profileUser.ratings.length > 0 && (
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Reviews</h2>
                   <div className="space-y-4">
-                    {profileUser.ratings.map((rating, idx) => (
-                      <div key={idx} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                        <div className="flex items-center mb-2">
-                          {[1,2,3,4,5].map(star => (
-                            <span key={star} className={`text-xl ${rating.star >= star ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
-                          ))}
-                          <span className="ml-2 text-gray-700 dark:text-gray-200 font-medium">{rating.star} / 5</span>
-                        </div>
-                        <div className="mb-2 text-gray-700 dark:text-gray-200">{rating.comment}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">By {rating.citizenId?.username || 'User'} on {rating.ratedAt ? new Date(rating.ratedAt).toLocaleDateString() : ''}</div>
-                        {currentUser && rating.citizenId && rating.citizenId.toString() === currentUser._id && (
-                          <div className="flex space-x-2 mt-2">
-                            <button className="btn-secondary" onClick={() => {/* trigger edit in BookingDetails or modal */}}>Edit</button>
-                            <button className="btn-danger" onClick={async () => {
-                              await api.post(`/users/${profileUser._id}/rate`, { star: 0, comment: "" });
-                              updateUser();
-                            }}>Delete</button>
+                    {profileUser.ratings.map(
+                      (
+                        rating, // Removed idx, using rating._id for key
+                      ) => (
+                        <div key={rating._id} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                          <div className="flex items-center mb-2">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <span
+                                key={star}
+                                className={`text-xl ${rating.star >= star ? "text-yellow-400" : "text-gray-300"}`}
+                              >
+                                ★
+                              </span>
+                            ))}
+                            <span className="ml-2 text-gray-700 dark:text-gray-200 font-medium">{rating.star} / 5</span>
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          <div className="mb-2 text-gray-700 dark:text-gray-200">{rating.comment}</div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            By {rating.citizenId?.username || "User"} on{" "}
+                            {rating.ratedAt ? new Date(rating.ratedAt).toLocaleDateString() : ""}
+                          </div>
+                          {currentUser && rating.citizenId && rating.citizenId.toString() === currentUser._id && (
+                            <div className="flex space-x-2 mt-2">
+                              <button className="btn-danger" onClick={() => handleDeleteReview(rating._id)}>
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ),
+                    )}
                   </div>
                 </div>
               )}

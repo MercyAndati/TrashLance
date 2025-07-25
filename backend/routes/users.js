@@ -12,20 +12,20 @@ const {
   getCollectorsByLocation,
   getUserServices,
   rateCollector,
+  deleteRating, 
 } = require("../controllers/userController")
 const { authenticateToken } = require("../middleware/auth")
 const { validateObjectId, handleValidationErrors } = require("../middleware/validation")
 const { avatarUpload } = require("../config/cloudinary")
 
 // Public routes
-router.get("/leaderboard", getLeaderboard) // FIXED: Remove ID validation
+router.get("/leaderboard", getLeaderboard)
 router.get("/search", searchUsers)
 router.get("/locations", getLocations)
 router.get("/locations/:location/collectors", getCollectorsByLocation)
 
 // Protected routes
 router.use(authenticateToken)
-
 router.get("/stats", getUserStats)
 router.get("/:id/services", getUserServices)
 router.get("/:id", validateObjectId("id"), getUserById)
@@ -34,5 +34,6 @@ router.delete("/profile", require("../controllers/userController").deleteOwnAcco
 router.post("/avatar", avatarUpload.single("avatar"), uploadAvatar)
 router.post("/complete-onboarding", completeOnboarding)
 router.post("/:id/rate", validateObjectId("id"), rateCollector)
+router.delete("/:id/rate/:reviewId", validateObjectId("id"), validateObjectId("reviewId"), deleteRating) // <--- New route added here
 
 module.exports = router
