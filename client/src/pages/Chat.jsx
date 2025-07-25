@@ -558,7 +558,7 @@ const Chat = () => {
                 <button
                   type="submit"
                   disabled={!newMessage.trim() || sendingMessage}
-                  className="p-2 bg-green-600 text-white rounded-full hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className={`p-2 bg-green-600 text-white rounded-full hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${sendingMessage ? "pointer-events-none" : ""}`}
                 >
                   {sendingMessage ? <LoadingSpinner size="sm" /> : <Send className="w-5 h-5" />}
                 </button>
