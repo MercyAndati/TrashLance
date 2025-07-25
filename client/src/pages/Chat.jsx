@@ -17,11 +17,10 @@ const Chat = () => {
   const [loading, setLoading] = useState(true)
   const [sendingMessage, setSendingMessage] = useState(false)
   const [deletingMessage, setDeletingMessage] = useState(null)
-  // const [socket, setSocket] = useState(null) // No longer needed, using shared instance
   const [showSidebar, setShowSidebar] = useState(false)
   const messagesEndRef = useRef(null)
   const fetchTimeoutRef = useRef(null)
-  const sentMessagesRef = useRef(new Set()) // Track sent messages to prevent duplicates
+  // const sentMessagesRef = useRef(new Set()) // No longer needed with new optimistic update
   const messagesContainerRef = useRef(null)
   const creatingChatRef = useRef(false) // Prevent multiple simultaneous chat creation calls
 
@@ -34,9 +33,6 @@ const Chat = () => {
     if (user?._id) {
       socket.emit("join", user._id)
     }
-
-    // No need for debug listeners here, they are in the shared socket.js
-    // No need for return () => newSocket.close(), as the shared socket is persistent
   }, [user])
 
   // Optimized conversation update without full reload
@@ -59,22 +55,33 @@ const Chat = () => {
   useEffect(() => {
     if (!socket) return
 
-    // Listen for new messages
     socket.on("new-message", (data) => {
-      // Only process if this is for the active conversation and not from current user
-      if (data.chatId === activeConversation?._id && data.message.sender !== user._id) {
+      // Only process if this is for the active conversation
+      if (data.chatId === activeConversation?._id) {
+        // Assuming data.message.sender is an object with _id, consistent with `messages` state.
+        const isFromCurrentUser = data.message.sender._id === user._id
+
         setMessages((prev) => {
+          // Check if a message with this _id (from server) already exists
           const messageExists = prev.some((msg) => msg._id === data.message._id)
+
           if (!messageExists) {
-            setTimeout(() => {
-              markMessagesAsRead(data.chatId, [data.message._id])
-            }, 1000)
+            // If the message is new and not from the current user, add it.
+            // Messages from the current user are handled by the API response in sendMessage.
+            if (!isFromCurrentUser) {
+              setTimeout(() => {
+                markMessagesAsRead(data.chatId, [data.message._id])
+              }, 1000)
+              return [...prev, data.message]
+            }
+            // If it's from the current user and doesn't exist, it means the optimistic update
+            // might have failed or was skipped, so add it. This is a fallback.
             return [...prev, data.message]
           }
-          return prev
+          return prev // Message already exists, do nothing (prevents duplicates)
         })
       } else {
-        // Update conversation unread count without full reload
+        // Update conversation unread count for non-active chats
         setConversations((prev) =>
           prev.map((conv) => (conv._id === data.chatId ? { ...conv, unreadCount: (conv.unreadCount || 0) + 1 } : conv)),
         )
@@ -122,7 +129,7 @@ const Chat = () => {
   useEffect(() => {
     if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1]
-      const isFromCurrentUser = lastMessage.sender === user._id
+      const isFromCurrentUser = lastMessage.sender._id === user._id // Ensure sender is an object
       // Only auto-scroll if the last message is from current user
       if (isFromCurrentUser) {
         scrollToBottom()
@@ -232,22 +239,36 @@ const Chat = () => {
     setSendingMessage(true)
     setNewMessage("")
 
+    // Generate a temporary client-side ID for optimistic update
+    const tempId = `optimistic-${Date.now()}-${Math.random()}`
+    const optimisticMessage = {
+      _id: tempId, // Temporary ID
+      content: messageContent,
+      sender: { _id: user._id, username: user.username, avatar: user.avatar }, // Ensure sender is an object
+      chat: activeConversation._id,
+      sentAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      isOptimistic: true, // Flag to identify optimistic message
+    }
+
+    setMessages((prev) => [...prev, optimisticMessage])
+    requestAnimationFrame(() => {
+      scrollToBottom()
+    })
+
     try {
       const response = await api.post(`/chats/${activeConversation._id}/messages`, {
         content: messageContent,
       })
-      const newMessageData = response.data.data.message
-      // Optimistically add to messages for sender
-      setMessages((prev) => [...prev, newMessageData])
-      requestAnimationFrame(() => {
-        scrollToBottom()
-      })
-      setTimeout(() => {
-        sentMessagesRef.current.delete(newMessageData._id)
-      }, 5000)
-      // No need to fetchMessages or reload
+      const serverMessage = response.data.data.message
+
+      // Replace the optimistic message with the server's authoritative message
+      setMessages((prev) => prev.map((msg) => (msg._id === tempId ? { ...serverMessage, isOptimistic: false } : msg)))
     } catch (error) {
-      setNewMessage(messageContent)
+      console.error("Failed to send message:", error)
+      // On error, remove the optimistic message
+      setMessages((prev) => prev.filter((msg) => msg._id !== tempId))
+      setNewMessage(messageContent) // Restore message content
     } finally {
       setSendingMessage(false)
     }
