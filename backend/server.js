@@ -9,7 +9,7 @@ const { createServer } = require("http")
 const { Server } = require("socket.io")
 require("dotenv").config()
 
-// Import routes 
+// Import routes
 const authRoutes = require("./routes/auth")
 const userRoutes = require("./routes/users")
 const serviceRoutes = require("./routes/services")
@@ -28,20 +28,17 @@ verifyEmailConfig()
 
 // Import middleware
 const errorHandler = require("./middleware/errorHandler")
-const { authenticateToken } = require("./middleware/auth")
+const { authenticateToken } = require("./middleware/auth") // Assuming this is correct path
 
 const app = express()
-const server = createServer(app)
+const server = createServer(app) // Create HTTP server from Express app
 
 // Socket.IO setup
 const io = new Server(server, {
   cors: {
-    origin: [
-      'https://trash-lance.vercel.app',
-      'http://localhost:5173'
-    ],
-    methods: ["GET", "POST"],
-    credentials: true
+    origin: ["https://trash-lance.vercel.app", "http://localhost:5173"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], // Broadened methods here
+    credentials: true,
   },
 })
 
@@ -54,23 +51,22 @@ app.use(compression())
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
+  windowMs: 15 * 60 * 1000,
   max: 10000, // limit each IP to 10000 requests per windowMs for testing
   message: "Too many requests from this IP, please try again later.",
 })
 app.use("/api/", limiter)
 
 //limit warning
-app.set('trust proxy', 1);
+app.set("trust proxy", 1)
 
-// CORS configuration
-app.use(cors({
-  origin: [
-    'https://trash-lance.vercel.app',
-    'http://localhost:5173'
-  ],
-  credentials: true
-}));
+// CORS configuration for Express
+app.use(
+  cors({
+    origin: ["https://trash-lance.vercel.app", "http://localhost:5173"],
+    credentials: true,
+  }),
+)
 
 // Body parsing middleware
 app.use(express.json({ limit: "10mb" }))
@@ -99,7 +95,7 @@ app.use("/api/admin", adminRoutes)
 app.use("/api/notifications", notificationRoutes)
 app.use("/api/posts", postRoutes)
 app.use("/api/pickup-zones", pickupZoneRoutes)
-app.use("/api/chats", chatRoutes) 
+app.use("/api/chats", chatRoutes)
 app.use("/api/location", locationRoutes)
 
 // Backward compatibility: redirect /conversations to /chats
